@@ -119,7 +119,7 @@ parentPort.on("message", (msg) => app.ports.incoming.send(msg));
 ```
 
 -}
-worker : Ports Msg -> Test -> Program Flags Model Msg
+worker : Ports Msg -> Maybe Test -> Program Flags Model Msg
 worker ({ askNbTests, receiveRunTest } as ports) masterTest =
     Platform.worker
         { init = init masterTest ports
@@ -128,9 +128,14 @@ worker ({ askNbTests, receiveRunTest } as ports) masterTest =
         }
 
 
-init : Test -> Ports Msg -> Flags -> ( Model, Cmd Msg )
-init masterTest ports flags =
-    ( Model ports (SeededRunners.fromTest masterTest flags), Cmd.none )
+init : Maybe Test -> Ports Msg -> Flags -> ( Model, Cmd Msg )
+init maybeConcatenatedTest ports flags =
+    case maybeConcatenatedTest of
+        Nothing ->
+            ( Model ports SeededRunners.empty, Cmd.none )
+
+        Just concatenatedTest ->
+            ( Model ports (SeededRunners.fromTest concatenatedTest flags), Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

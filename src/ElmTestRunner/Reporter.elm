@@ -35,7 +35,7 @@ type alias Ports msg =
     { restart : (Int -> msg) -> Sub msg
     , incomingResult : (Value -> msg) -> Sub msg
     , stdout : String -> Cmd msg
-    , signalFinished : Int -> Cmd msg
+    , signalFinished : { exitCode : Int, testsCount : Int } -> Cmd msg
     }
 
 
@@ -52,7 +52,7 @@ The main Elm module calling this one will typically look like the example below.
 
     port incomingResult : (Value -> msg) -> Sub msg
 
-    port signalFinished : Int -> Cmd msg
+    port signalFinished : { exitCode : Int, testsCount : Int } -> Cmd msg
 
     port stdout : String -> Cmd msg
 
@@ -82,7 +82,7 @@ app.ports.stdout.subscribe((str) => process.stdout.write(str));
 
 // Export function to set the callback function when reports are finished
 let finishCallback = () => console.error("finishCallback not defined yet");
-app.ports.signalFinished.subscribe((code) => finishCallback(code));
+app.ports.signalFinished.subscribe(({exitCode}) => finishCallback(exitCode));
 exports.setCallback = (callback) => { finishCallback = callback; };
 
 // Export function to restart the Elm reporter
@@ -167,7 +167,11 @@ update msg model =
     case msg of
         Restart nbTests ->
             ( Model model.ports model.reporter nbTests Array.empty
-            , report model.ports.stdout (model.reporter.onBegin nbTests)
+            , if nbTests == 0 then
+                model.ports.signalFinished { exitCode = 0, testsCount = nbTests }
+
+              else
+                report model.ports.stdout (model.reporter.onBegin nbTests)
             )
 
         IncomingResult value ->
@@ -204,7 +208,12 @@ update msg model =
             ( model, summarize model.ports.stdout (model.reporter.onEnd model.testResults) )
 
         Finished ->
-            ( model, model.ports.signalFinished (errorCode model.testResults) )
+            ( model
+            , model.ports.signalFinished
+                { exitCode = errorCode model.testResults
+                , testsCount = model.nbTests
+                }
+            )
 
 
 errorCode : Array TestResult -> Int

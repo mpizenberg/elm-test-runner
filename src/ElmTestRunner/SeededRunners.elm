@@ -1,8 +1,8 @@
-module ElmTestRunner.SeededRunners exposing (SeededRunners, Kind(..), fromTest, run)
+module ElmTestRunner.SeededRunners exposing (SeededRunners, Kind(..), empty, fromTest, run)
 
 {-| Helper module to prepare and run test runners.
 
-@docs SeededRunners, Kind, fromTest, run
+@docs SeededRunners, Kind, empty, fromTest, run
 
 -}
 
@@ -29,6 +29,13 @@ type Kind
     = Plain
     | Only
     | Skipping
+
+
+{-| Create an empty SeededRunners when there isn't any test
+-}
+empty : SeededRunners
+empty =
+    Ok { kind = Plain, runners = Array.empty }
 
 
 {-| Convert a "master" test into seeded runners.
