@@ -1,5 +1,5 @@
 module ElmTestRunner.Result exposing
-    ( TestResult(..), fromExpectations, encode, decoder
+    ( TestResult(..), fromExpectations, setDuration, encode, decoder
     , Summary, summary
     )
 
@@ -8,7 +8,7 @@ module ElmTestRunner.Result exposing
 
 # Manipulation of the result of a test run
 
-@docs TestResult, fromExpectations, encode, decoder
+@docs TestResult, fromExpectations, setDuration, encode, decoder
 
 
 # Helper functions
@@ -31,6 +31,18 @@ It is obtained from the list of expectations returned by calling runner.run ().
 type TestResult
     = Passed { labels : List String, duration : Float }
     | Failed { labels : List String, duration : Float, todos : List String, failures : List Failure }
+
+
+{-| Set the duration that the test took.
+-}
+setDuration : Float -> TestResult -> TestResult
+setDuration duration testResult =
+    case testResult of
+        Passed { labels } ->
+            Passed { labels = labels, duration = duration }
+
+        Failed { labels, todos, failures } ->
+            Failed { labels = labels, duration = duration, todos = todos, failures = failures }
 
 
 {-| Convert a list of expectations (results of a run) into a `TestResult`.

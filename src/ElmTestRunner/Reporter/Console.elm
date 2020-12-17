@@ -81,17 +81,16 @@ onEnd testResults =
 
 
 formatSummary : Summary -> String
-formatSummary { nbPassed, nbFailed } =
+formatSummary { totalDuration, nbPassed, nbFailed } =
     """
 TEST RUN {{ result }}
 
-Duration: {{ duration }} ms
 Passed:   {{ passed }}
 Failed:   {{ failed }}
-
+Running duration (workers): {{ duration }} ms
 """
         |> String.Format.namedValue "result" (summaryTitle (nbFailed > 0))
-        |> String.Format.namedValue "duration" "(TODO: measure durations)"
+        |> String.Format.namedValue "duration" (String.fromInt (round totalDuration))
         |> String.Format.namedValue "passed" (String.fromInt nbPassed)
         |> String.Format.namedValue "failed" (String.fromInt nbFailed)
 

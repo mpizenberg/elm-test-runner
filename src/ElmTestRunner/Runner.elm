@@ -36,8 +36,8 @@ but will basically be wrapped by an actual port in the main Elm caller module.
 type alias Ports msg =
     { askNbTests : (Value -> msg) -> Sub msg
     , sendNbTests : Int -> Cmd msg
-    , receiveRunTest : (Int -> msg) -> Sub msg
-    , sendResult : Int -> Value -> Cmd msg
+    , receiveRunTest : ({ id : Int, startTime : Float } -> msg) -> Sub msg
+    , sendResult : { id : Int, startTime : Float } -> Value -> Cmd msg
     }
 
 
@@ -65,7 +65,7 @@ type alias Model =
 -}
 type Msg
     = AskNbTests
-    | ReceiveRunTest Int
+    | ReceiveRunTest { id : Int, startTime : Float }
 
 
 
@@ -89,8 +89,8 @@ of needed imports from user code and the list of tests to run.
 
     port askNbTests : (Value -> msg) -> Sub msg
     port sendNbTests : { type_ : String, nbTests : Int } -> Cmd msg
-    port receiveRunTest : (Int -> msg) -> Sub msg
-    port sendResult : { type_ : String, id: Int, result : Value } -> Cmd msg
+    port receiveRunTest : ({ id : Int, startTime : Float }  -> msg) -> Sub msg
+    port sendResult : { type_ : String, id: Int, startTime : Float, result : Value } -> Cmd msg
 
     main : Program Flags Model Msg
     main =
@@ -149,15 +149,15 @@ update msg model =
             ( model, Debug.todo "Deal with invalid runners" )
 
         -- ReceiveRunTest
-        ( ReceiveRunTest id, Ok { runners } ) ->
-            ( model, sendTestResult model.ports id (SeededRunners.run id runners) )
+        ( ReceiveRunTest meta, Ok { runners } ) ->
+            ( model, sendTestResult model.ports meta (SeededRunners.run meta.id runners) )
 
         ( ReceiveRunTest _, Err _ ) ->
             ( model, Debug.todo "Deal with invalid runners" )
 
 
-sendTestResult : Ports msg -> Int -> Maybe TestResult -> Cmd msg
-sendTestResult ports id maybeResult =
+sendTestResult : Ports msg -> { id : Int, startTime : Float } -> Maybe TestResult -> Cmd msg
+sendTestResult ports meta maybeResult =
     Maybe.map TestResult.encode maybeResult
-        |> Maybe.map (ports.sendResult id)
+        |> Maybe.map (ports.sendResult meta)
         |> Maybe.withDefault Cmd.none
