@@ -26,10 +26,10 @@ implementation options =
 
 
 onBegin : { seed : Int, fuzzRuns : Int } -> Int -> Maybe String
-onBegin { seed, fuzzRuns } nbTests =
-    """{"event":"runStart","testCount":"{{ nbTests }}","initialSeed":"{{ seed }}","fuzzRuns":"{{ fuzzRuns }}","paths":{{ paths }}}
+onBegin { seed, fuzzRuns } testsCount =
+    """{"event":"runStart","testCount":"{{ testsCount }}","initialSeed":"{{ seed }}","fuzzRuns":"{{ fuzzRuns }}","paths":{{ paths }}}
 """
-        |> String.Format.namedValue "nbTests" (String.fromInt nbTests)
+        |> String.Format.namedValue "testsCount" (String.fromInt testsCount)
         |> String.Format.namedValue "seed" (String.fromInt seed)
         |> String.Format.namedValue "fuzzRuns" (String.fromInt fuzzRuns)
         |> Just
@@ -66,12 +66,12 @@ onResult result =
 onEnd : Array TestResult -> Maybe String
 onEnd results =
     let
-        { totalDuration, nbPassed, nbFailed } =
+        { totalDuration, passedCount, failedCount } =
             TestResult.summary results
     in
     """{"event":"runComplete","passed":"{{ passed }}","failed":"{{ failed }}","duration":"{{ duration }}","autoFail":null}
 """
-        |> String.Format.namedValue "passed" (String.fromInt nbPassed)
-        |> String.Format.namedValue "failed" (String.fromInt nbFailed)
+        |> String.Format.namedValue "passed" (String.fromInt passedCount)
+        |> String.Format.namedValue "failed" (String.fromInt failedCount)
         |> String.Format.namedValue "duration" (String.fromFloat totalDuration)
         |> Just

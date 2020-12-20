@@ -27,7 +27,7 @@ implementation =
 summary : Array TestResult -> String
 summary results =
     let
-        { totalDuration, nbFailed } =
+        { totalDuration, failedCount } =
             TestResult.summary results
 
         encodedTests =
@@ -42,7 +42,7 @@ summary results =
                 , ( "tests", Encode.int (Array.length results) )
 
                 -- "failures" should be used and not "failed"
-                , ( "failures", Encode.int nbFailed )
+                , ( "failures", Encode.int failedCount )
                 , ( "skipped", Encode.int 0 )
                 , ( "time", Encode.float totalDuration )
                 ]

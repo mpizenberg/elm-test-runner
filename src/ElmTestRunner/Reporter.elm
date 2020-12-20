@@ -122,7 +122,7 @@ type alias Flags =
 type alias Model =
     { ports : Ports Msg
     , reporter : Interface
-    , nbTests : Int
+    , testsCount : Int
     , testResults : Array TestResult
     }
 
@@ -165,13 +165,13 @@ init ports flags =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Restart nbTests ->
-            ( Model model.ports model.reporter nbTests Array.empty
-            , if nbTests == 0 then
-                model.ports.signalFinished { exitCode = 0, testsCount = nbTests }
+        Restart testsCount ->
+            ( Model model.ports model.reporter testsCount Array.empty
+            , if testsCount == 0 then
+                model.ports.signalFinished { exitCode = 0, testsCount = testsCount }
 
               else
-                report model.ports.stdout (model.reporter.onBegin nbTests)
+                report model.ports.stdout (model.reporter.onBegin testsCount)
             )
 
         IncomingResult { duration, result } ->
@@ -190,7 +190,7 @@ update msg model =
                 updatedModel =
                     { model | testResults = allTestResults }
             in
-            if Array.length updatedModel.testResults == model.nbTests then
+            if Array.length updatedModel.testResults == model.testsCount then
                 ( updatedModel
                 , Result.map model.reporter.onResult testResultResult
                     |> Result.map (reportAndThenSummarize model.ports.stdout)
@@ -211,7 +211,7 @@ update msg model =
             ( model
             , model.ports.signalFinished
                 { exitCode = errorCode model.testResults
-                , testsCount = model.nbTests
+                , testsCount = model.testsCount
                 }
             )
 
@@ -219,10 +219,10 @@ update msg model =
 errorCode : Array TestResult -> Int
 errorCode testResults =
     let
-        { nbFailed } =
+        { failedCount } =
             TestResult.summary testResults
     in
-    if nbFailed > 0 then
+    if failedCount > 0 then
         2
 
     else

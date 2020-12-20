@@ -24,12 +24,12 @@ implementation options =
 
 
 onBegin : { seed : Int, fuzzRuns : Int } -> Int -> Maybe String
-onBegin { seed, fuzzRuns } nbTests =
+onBegin { seed, fuzzRuns } testsCount =
     """
-Running {{ nbTests }} tests. To reproduce these results later, run:
+Running {{ testsCount }} tests. To reproduce these results later, run:
 elm-test-rs --seed {{ seed }} --fuzz {{ fuzzRuns }} {{ files }}
 """
-        |> String.Format.namedValue "nbTests" (String.fromInt nbTests)
+        |> String.Format.namedValue "testsCount" (String.fromInt testsCount)
         |> String.Format.namedValue "seed" (String.fromInt seed)
         |> String.Format.namedValue "fuzzRuns" (String.fromInt fuzzRuns)
         |> String.Format.namedValue "files" "(TODO: pass files to reporter)"
@@ -81,7 +81,7 @@ onEnd testResults =
 
 
 formatSummary : Summary -> String
-formatSummary { totalDuration, nbPassed, nbFailed } =
+formatSummary { totalDuration, passedCount, failedCount } =
     """
 TEST RUN {{ result }}
 
@@ -89,10 +89,10 @@ Passed:   {{ passed }}
 Failed:   {{ failed }}
 Running duration (workers): {{ duration }} ms
 """
-        |> String.Format.namedValue "result" (summaryTitle (nbFailed > 0))
+        |> String.Format.namedValue "result" (summaryTitle (failedCount > 0))
         |> String.Format.namedValue "duration" (String.fromInt (round totalDuration))
-        |> String.Format.namedValue "passed" (String.fromInt nbPassed)
-        |> String.Format.namedValue "failed" (String.fromInt nbFailed)
+        |> String.Format.namedValue "passed" (String.fromInt passedCount)
+        |> String.Format.namedValue "failed" (String.fromInt failedCount)
 
 
 summaryTitle : Bool -> String

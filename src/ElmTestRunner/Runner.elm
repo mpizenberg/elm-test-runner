@@ -34,8 +34,8 @@ They aren't exactly ports (`sendResult` isn't a valid port for example)
 but will basically be wrapped by an actual port in the main Elm caller module.
 -}
 type alias Ports msg =
-    { askNbTests : (Value -> msg) -> Sub msg
-    , sendNbTests : Int -> Cmd msg
+    { askTestsCount : (Value -> msg) -> Sub msg
+    , sendTestsCount : Int -> Cmd msg
     , receiveRunTest : ({ id : Int, startTime : Float } -> msg) -> Sub msg
     , sendResult : { id : Int, startTime : Float } -> Value -> Cmd msg
     }
@@ -64,7 +64,7 @@ type alias Model =
 {-| Internal messages.
 -}
 type Msg
-    = AskNbTests
+    = AskTestsCount
     | ReceiveRunTest { id : Int, startTime : Float }
 
 
@@ -87,8 +87,8 @@ of needed imports from user code and the list of tests to run.
     import ElmTestRunner.Runner exposing (Flags, Model, Msg)
     import Json.Encode exposing (Value)
 
-    port askNbTests : (Value -> msg) -> Sub msg
-    port sendNbTests : { type_ : String, nbTests : Int } -> Cmd msg
+    port askTestsCount : (Value -> msg) -> Sub msg
+    port sendTestsCount : { type_ : String, testsCount : Int } -> Cmd msg
     port receiveRunTest : ({ id : Int, startTime : Float }  -> msg) -> Sub msg
     port sendResult : { type_ : String, id: Int, startTime : Float, result : Value } -> Cmd msg
 
@@ -97,8 +97,8 @@ of needed imports from user code and the list of tests to run.
         [ {{ tests }} ]
             |> Test.concat
             |> ElmTestRunner.Runner.worker
-                { askNbTests = askNbTests
-                , sendNbTests = \nb -> sendNbTests { type_ = "nbTests", nbTests = nb }
+                { askTestsCount = askTestsCount
+                , sendTestsCount = \count -> sendTestsCount { type_ = "testsCount", testsCount = count }
                 , receiveRunTest = receiveRunTest
                 , sendResult = \id res -> sendResult { type_ = "result", id = id, result = res }
                 }
@@ -120,11 +120,11 @@ parentPort.on("message", (msg) => app.ports.incoming.send(msg));
 
 -}
 worker : Ports Msg -> Maybe Test -> Program Flags Model Msg
-worker ({ askNbTests, receiveRunTest } as ports) masterTest =
+worker ({ askTestsCount, receiveRunTest } as ports) masterTest =
     Platform.worker
         { init = init masterTest ports
         , update = update
-        , subscriptions = \_ -> Sub.batch [ askNbTests (always AskNbTests), receiveRunTest ReceiveRunTest ]
+        , subscriptions = \_ -> Sub.batch [ askTestsCount (always AskTestsCount), receiveRunTest ReceiveRunTest ]
         }
 
 
@@ -141,11 +141,11 @@ init maybeConcatenatedTest ports flags =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( msg, model.testRunners ) of
-        -- AskNbTests
-        ( AskNbTests, Ok { runners } ) ->
-            ( model, model.ports.sendNbTests (Array.length runners) )
+        -- AskTestsCount
+        ( AskTestsCount, Ok { runners } ) ->
+            ( model, model.ports.sendTestsCount (Array.length runners) )
 
-        ( AskNbTests, Err _ ) ->
+        ( AskTestsCount, Err _ ) ->
             ( model, Debug.todo "Deal with invalid runners" )
 
         -- ReceiveRunTest

@@ -94,29 +94,29 @@ decoder =
 {-| Quantitative summary of all test results.
 -}
 type alias Summary =
-    { totalDuration : Float, nbPassed : Int, nbFailed : Int }
+    { totalDuration : Float, passedCount : Int, failedCount : Int }
 
 
 {-| Report a quantitative summary of test results.
 -}
 summary : Array TestResult -> Summary
 summary =
-    Array.foldl accumStats { totalDuration = 0, nbPassed = 0, nbFailed = 0 }
+    Array.foldl accumStats { totalDuration = 0, passedCount = 0, failedCount = 0 }
 
 
 accumStats : TestResult -> Summary -> Summary
-accumStats result { totalDuration, nbPassed, nbFailed } =
+accumStats result { totalDuration, passedCount, failedCount } =
     case result of
         Passed { duration } ->
             { totalDuration = totalDuration + duration
-            , nbPassed = nbPassed + 1
-            , nbFailed = nbFailed
+            , passedCount = passedCount + 1
+            , failedCount = failedCount
             }
 
         Failed { duration } ->
             { totalDuration = totalDuration + duration
-            , nbPassed = nbPassed
-            , nbFailed = nbFailed + 1
+            , passedCount = passedCount
+            , failedCount = failedCount + 1
             }
 
 
