@@ -33,7 +33,7 @@ but will basically be wrapped by an actual port in the main Elm caller module.
 -}
 type alias Ports msg =
     { restart : (Int -> msg) -> Sub msg
-    , incomingResult : ({ duration : Float, result : Value } -> msg) -> Sub msg
+    , incomingResult : ({ duration : Float, result : Value, logs : List String } -> msg) -> Sub msg
     , stdout : String -> Cmd msg
     , signalFinished : { exitCode : Int, testsCount : Int } -> Cmd msg
     }
@@ -50,7 +50,7 @@ The main Elm module calling this one will typically look like the example below.
 
     port restart : (Int -> msg) -> Sub msg
 
-    port incomingResult : ({ duration : Float, result : Value } -> msg) -> Sub msg
+    port incomingResult : ({ duration : Float, result : Value, logs : List String } -> msg) -> Sub msg
 
     port signalFinished : { exitCode : Int, testsCount : Int } -> Cmd msg
 
@@ -131,7 +131,7 @@ type alias Model =
 -}
 type Msg
     = Restart Int
-    | IncomingResult { duration : Float, result : Value }
+    | IncomingResult { duration : Float, result : Value, logs : List String }
     | Summarize
     | Finished
 
@@ -174,15 +174,16 @@ update msg model =
                 report model.ports.stdout (model.reporter.onBegin testsCount)
             )
 
-        IncomingResult { duration, result } ->
+        IncomingResult { duration, result, logs } ->
             let
                 testResultResult =
                     decodeValue TestResult.decoder result
+                        |> Result.map (TestResult.setLogs logs >> TestResult.setDuration duration)
 
                 allTestResults =
                     case testResultResult of
                         Ok testResult ->
-                            Array.push (TestResult.setDuration duration testResult) model.testResults
+                            Array.push testResult model.testResults
 
                         Err _ ->
                             model.testResults

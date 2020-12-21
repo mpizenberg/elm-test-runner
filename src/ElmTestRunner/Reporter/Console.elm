@@ -42,16 +42,21 @@ onResult result =
         Passed _ ->
             Nothing
 
-        Failed { labels, todos, failures } ->
+        Failed { labels, todos, failures, logs } ->
             """
 {{ labels }}
 
     with todos: {{ todos }}
     with failures: {{ failures }}
+    with debug logs:
+
+{{ logs }}
+
 """
                 |> String.Format.namedValue "labels" (formatLabels labels)
                 |> String.Format.namedValue "todos" (Debug.toString todos)
                 |> String.Format.namedValue "failures" (Debug.toString failures)
+                |> String.Format.namedValue "logs" (String.concat logs)
                 |> Just
 
 

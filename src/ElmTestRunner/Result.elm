@@ -1,5 +1,5 @@
 module ElmTestRunner.Result exposing
-    ( TestResult(..), fromExpectations, setDuration, encode, decoder
+    ( TestResult(..), fromExpectations, setDuration, setLogs, encode, decoder
     , Summary, summary
     )
 
@@ -8,7 +8,7 @@ module ElmTestRunner.Result exposing
 
 # Manipulation of the result of a test run
 
-@docs TestResult, fromExpectations, setDuration, encode, decoder
+@docs TestResult, fromExpectations, setDuration, setLogs, encode, decoder
 
 
 # Helper functions
@@ -29,8 +29,8 @@ import Test.Runner
 It is obtained from the list of expectations returned by calling runner.run ().
 -}
 type TestResult
-    = Passed { labels : List String, duration : Float }
-    | Failed { labels : List String, duration : Float, todos : List String, failures : List Failure }
+    = Passed { labels : List String, duration : Float, logs : List String }
+    | Failed { labels : List String, duration : Float, logs : List String, todos : List String, failures : List Failure }
 
 
 {-| Set the duration that the test took.
@@ -38,11 +38,23 @@ type TestResult
 setDuration : Float -> TestResult -> TestResult
 setDuration duration testResult =
     case testResult of
-        Passed { labels } ->
-            Passed { labels = labels, duration = duration }
+        Passed { labels, logs } ->
+            Passed { labels = labels, duration = duration, logs = logs }
 
-        Failed { labels, todos, failures } ->
-            Failed { labels = labels, duration = duration, todos = todos, failures = failures }
+        Failed { labels, logs, todos, failures } ->
+            Failed { labels = labels, duration = duration, logs = logs, todos = todos, failures = failures }
+
+
+{-| Set the logs received for that test.
+-}
+setLogs : List String -> TestResult -> TestResult
+setLogs logs testResult =
+    case testResult of
+        Passed { labels, duration } ->
+            Passed { labels = labels, duration = duration, logs = logs }
+
+        Failed { labels, duration, todos, failures } ->
+            Failed { labels = labels, duration = duration, todos = todos, failures = failures, logs = logs }
 
 
 {-| Convert a list of expectations (results of a run) into a `TestResult`.
@@ -52,10 +64,10 @@ fromExpectations : List String -> List Expectation -> TestResult
 fromExpectations labels expectations =
     case failuresAndTodos expectations of
         ( [], [] ) ->
-            Passed { labels = labels, duration = 0 }
+            Passed { labels = labels, duration = 0, logs = [] }
 
         ( todos, failures ) ->
-            Failed { labels = labels, duration = 0, todos = todos, failures = failures }
+            Failed { labels = labels, duration = 0, todos = todos, failures = failures, logs = [] }
 
 
 failuresAndTodos : List Expectation -> ( List String, List Failure )
@@ -133,29 +145,31 @@ encodeFailure =
 
 
 
--- Automatically generated decoders and encoders with https://dkodaj.github.io/decgen/
+-- Automatically generated decoders and encoders for TestResult with https://dkodaj.github.io/decgen/
 
 
-type alias Record_labels_ListString_duration_Float_todos_ListString_failures_ListFailure_ =
-    { labels : List String, duration : Float, todos : List String, failures : List Failure }
+type alias Record_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_ =
+    { labels : List String, duration : Float, logs : List String, todos : List String, failures : List Failure }
 
 
-type alias Record_labels_ListString_duration_Float_ =
-    { labels : List String, duration : Float }
+type alias Record_labels_ListString_duration_Float_logs_ListString_ =
+    { labels : List String, duration : Float, logs : List String }
 
 
-decodeRecord_labels_ListString_duration_Float_ =
-    Decode.map2
-        Record_labels_ListString_duration_Float_
+decodeRecord_labels_ListString_duration_Float_logs_ListString_ =
+    Decode.map3
+        Record_labels_ListString_duration_Float_logs_ListString_
         (Decode.field "labels" (Decode.list Decode.string))
         (Decode.field "duration" Decode.float)
+        (Decode.field "logs" (Decode.list Decode.string))
 
 
-decodeRecord_labels_ListString_duration_Float_todos_ListString_failures_ListFailure_ =
-    Decode.map4
-        Record_labels_ListString_duration_Float_todos_ListString_failures_ListFailure_
+decodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_ =
+    Decode.map5
+        Record_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_
         (Decode.field "labels" (Decode.list Decode.string))
         (Decode.field "duration" Decode.float)
+        (Decode.field "logs" (Decode.list Decode.string))
         (Decode.field "todos" (Decode.list Decode.string))
         (Decode.field "failures" (Decode.list decodeFailure))
 
@@ -169,28 +183,30 @@ decodeTestResultHelp constructor =
         "Passed" ->
             Decode.map
                 Passed
-                (Decode.field "A1" decodeRecord_labels_ListString_duration_Float_)
+                (Decode.field "A1" decodeRecord_labels_ListString_duration_Float_logs_ListString_)
 
         "Failed" ->
             Decode.map
                 Failed
-                (Decode.field "A1" decodeRecord_labels_ListString_duration_Float_todos_ListString_failures_ListFailure_)
+                (Decode.field "A1" decodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_)
 
         other ->
             Decode.fail <| "Unknown constructor for type TestResult: " ++ other
 
 
-encodeRecord_labels_ListString_duration_Float_ a =
+encodeRecord_labels_ListString_duration_Float_logs_ListString_ a =
     Encode.object
         [ ( "labels", Encode.list Encode.string a.labels )
         , ( "duration", Encode.float a.duration )
+        , ( "logs", Encode.list Encode.string a.logs )
         ]
 
 
-encodeRecord_labels_ListString_duration_Float_todos_ListString_failures_ListFailure_ a =
+encodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_ a =
     Encode.object
         [ ( "labels", Encode.list Encode.string a.labels )
         , ( "duration", Encode.float a.duration )
+        , ( "logs", Encode.list Encode.string a.logs )
         , ( "todos", Encode.list Encode.string a.todos )
         , ( "failures", Encode.list encodeFailure a.failures )
         ]
@@ -201,11 +217,11 @@ encodeTestResult a =
         Passed a1 ->
             Encode.object
                 [ ( "Constructor", Encode.string "Passed" )
-                , ( "A1", encodeRecord_labels_ListString_duration_Float_ a1 )
+                , ( "A1", encodeRecord_labels_ListString_duration_Float_logs_ListString_ a1 )
                 ]
 
         Failed a1 ->
             Encode.object
                 [ ( "Constructor", Encode.string "Failed" )
-                , ( "A1", encodeRecord_labels_ListString_duration_Float_todos_ListString_failures_ListFailure_ a1 )
+                , ( "A1", encodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_ a1 )
                 ]
