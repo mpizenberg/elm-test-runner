@@ -29,15 +29,13 @@ import Test exposing (Test)
 -- Ports
 
 
-{-| Ports(ish) required by the worker program to function.
-They aren't exactly ports (`sendResult` isn't a valid port for example)
-but will basically be wrapped by an actual port in the main Elm caller module.
+{-| Ports required by the worker program to function.
 -}
 type alias Ports msg =
     { askTestsCount : (Value -> msg) -> Sub msg
     , sendTestsCount : Int -> Cmd msg
     , receiveRunTest : (Int -> msg) -> Sub msg
-    , sendResult : Int -> Value -> Cmd msg
+    , sendResult : { id : Int, result : Value } -> Cmd msg
     }
 
 
@@ -90,7 +88,7 @@ of needed imports from user code and the list of tests to run.
     port askTestsCount : (Value -> msg) -> Sub msg
     port sendTestsCount : Int -> Cmd msg
     port receiveRunTest : (Int  -> msg) -> Sub msg
-    port sendResult : { type_ : String, id: Int, result : Value } -> Cmd msg
+    port sendResult : { id : Int, result : Value } -> Cmd msg
 
     main : Program Flags Model Msg
     main =
@@ -100,7 +98,7 @@ of needed imports from user code and the list of tests to run.
                 { askTestsCount = askTestsCount
                 , sendTestsCount = sendTestsCount
                 , receiveRunTest = receiveRunTest
-                , sendResult = \id res -> sendResult { type_ = "result", id = id, result = res }
+                , sendResult = sendResult
                 }
 
 It can later be spawned as a Node worker with a tiny bit of JS similar to:
@@ -159,5 +157,5 @@ update msg model =
 sendTestResult : Ports msg -> Int -> Maybe TestResult -> Cmd msg
 sendTestResult ports id maybeResult =
     Maybe.map TestResult.encode maybeResult
-        |> Maybe.map (ports.sendResult id)
+        |> Maybe.map (\res -> ports.sendResult { id = id, result = res })
         |> Maybe.withDefault Cmd.none
