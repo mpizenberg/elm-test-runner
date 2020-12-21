@@ -36,8 +36,8 @@ but will basically be wrapped by an actual port in the main Elm caller module.
 type alias Ports msg =
     { askTestsCount : (Value -> msg) -> Sub msg
     , sendTestsCount : Int -> Cmd msg
-    , receiveRunTest : ({ id : Int, startTime : Float } -> msg) -> Sub msg
-    , sendResult : { id : Int, startTime : Float } -> Value -> Cmd msg
+    , receiveRunTest : (Int -> msg) -> Sub msg
+    , sendResult : Int -> Value -> Cmd msg
     }
 
 
@@ -65,7 +65,7 @@ type alias Model =
 -}
 type Msg
     = AskTestsCount
-    | ReceiveRunTest { id : Int, startTime : Float }
+    | ReceiveRunTest Int
 
 
 
@@ -89,8 +89,8 @@ of needed imports from user code and the list of tests to run.
 
     port askTestsCount : (Value -> msg) -> Sub msg
     port sendTestsCount : { type_ : String, testsCount : Int } -> Cmd msg
-    port receiveRunTest : ({ id : Int, startTime : Float }  -> msg) -> Sub msg
-    port sendResult : { type_ : String, id: Int, startTime : Float, result : Value } -> Cmd msg
+    port receiveRunTest : (Int  -> msg) -> Sub msg
+    port sendResult : { type_ : String, id: Int, result : Value } -> Cmd msg
 
     main : Program Flags Model Msg
     main =
@@ -149,15 +149,15 @@ update msg model =
             ( model, Debug.todo "Deal with invalid runners" )
 
         -- ReceiveRunTest
-        ( ReceiveRunTest meta, Ok { runners } ) ->
-            ( model, sendTestResult model.ports meta (SeededRunners.run meta.id runners) )
+        ( ReceiveRunTest id, Ok { runners } ) ->
+            ( model, sendTestResult model.ports id (SeededRunners.run id runners) )
 
         ( ReceiveRunTest _, Err _ ) ->
             ( model, Debug.todo "Deal with invalid runners" )
 
 
-sendTestResult : Ports msg -> { id : Int, startTime : Float } -> Maybe TestResult -> Cmd msg
-sendTestResult ports meta maybeResult =
+sendTestResult : Ports msg -> Int -> Maybe TestResult -> Cmd msg
+sendTestResult ports id maybeResult =
     Maybe.map TestResult.encode maybeResult
-        |> Maybe.map (ports.sendResult meta)
+        |> Maybe.map (ports.sendResult id)
         |> Maybe.withDefault Cmd.none
