@@ -88,7 +88,7 @@ of needed imports from user code and the list of tests to run.
     import Json.Encode exposing (Value)
 
     port askTestsCount : (Value -> msg) -> Sub msg
-    port sendTestsCount : { type_ : String, testsCount : Int } -> Cmd msg
+    port sendTestsCount : Int -> Cmd msg
     port receiveRunTest : (Int  -> msg) -> Sub msg
     port sendResult : { type_ : String, id: Int, result : Value } -> Cmd msg
 
@@ -98,7 +98,7 @@ of needed imports from user code and the list of tests to run.
             |> Test.concat
             |> ElmTestRunner.Runner.worker
                 { askTestsCount = askTestsCount
-                , sendTestsCount = \count -> sendTestsCount { type_ = "testsCount", testsCount = count }
+                , sendTestsCount = sendTestsCount
                 , receiveRunTest = receiveRunTest
                 , sendResult = \id res -> sendResult { type_ = "result", id = id, result = res }
                 }
