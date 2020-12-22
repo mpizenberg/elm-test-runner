@@ -106,29 +106,46 @@ decoder =
 {-| Quantitative summary of all test results.
 -}
 type alias Summary =
-    { totalDuration : Float, passedCount : Int, failedCount : Int }
+    { totalDuration : Float, passedCount : Int, failedCount : Int, todoCount : Int }
 
 
 {-| Report a quantitative summary of test results.
 -}
 summary : Array TestResult -> Summary
 summary =
-    Array.foldl accumStats { totalDuration = 0, passedCount = 0, failedCount = 0 }
+    Array.foldl accumStats { totalDuration = 0, passedCount = 0, failedCount = 0, todoCount = 0 }
 
 
 accumStats : TestResult -> Summary -> Summary
-accumStats result { totalDuration, passedCount, failedCount } =
+accumStats result { totalDuration, passedCount, failedCount, todoCount } =
     case result of
         Passed { duration } ->
             { totalDuration = totalDuration + duration
             , passedCount = passedCount + 1
             , failedCount = failedCount
+            , todoCount = todoCount
             }
 
-        Failed { duration } ->
+        Failed { duration, todos, failures } ->
+            let
+                newFailedCount =
+                    if List.isEmpty failures then
+                        failedCount
+
+                    else
+                        failedCount + 1
+
+                newTodoCount =
+                    if List.isEmpty todos then
+                        todoCount
+
+                    else
+                        todoCount + 1
+            in
             { totalDuration = totalDuration + duration
             , passedCount = passedCount
-            , failedCount = failedCount + 1
+            , failedCount = newFailedCount
+            , todoCount = newTodoCount
             }
 
 
