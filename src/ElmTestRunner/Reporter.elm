@@ -23,7 +23,9 @@ import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Reporter.Json as ReporterJson
 import ElmTestRunner.Reporter.Junit as ReporterJunit
 import ElmTestRunner.Result as TestResult exposing (TestResult)
+import ElmTestRunner.SeededRunners as SeededRunners
 import Json.Decode exposing (Value, decodeValue)
+import Process
 import Task
 
 
@@ -32,7 +34,7 @@ They aren't necessarily exactly ports
 but will basically be wrapped by an actual port in the main Elm caller module.
 -}
 type alias Ports msg =
-    { restart : (Int -> msg) -> Sub msg
+    { restart : ({ kind : String, testsCount : Int } -> msg) -> Sub msg
     , incomingResult : ({ duration : Float, result : Value, logs : List String } -> msg) -> Sub msg
     , stdout : String -> Cmd msg
     , signalFinished : { exitCode : Int, testsCount : Int } -> Cmd msg
@@ -48,7 +50,7 @@ The main Elm module calling this one will typically look like the example below.
     import ElmTestRunner.Reporter exposing (Flags, Model, Msg)
     import Json.Decode exposing (Value)
 
-    port restart : (Int -> msg) -> Sub msg
+    port restart : ({ kind : String, count : Int } -> msg) -> Sub msg
 
     port incomingResult : ({ duration : Float, result : Value, logs : List String } -> msg) -> Sub msg
 
@@ -124,13 +126,14 @@ type alias Model =
     , reporter : Interface
     , testsCount : Int
     , testResults : Array TestResult
+    , kind : Result String SeededRunners.Kind
     }
 
 
 {-| Internal messages.
 -}
 type Msg
-    = Restart Int
+    = Restart { kind : String, testsCount : Int }
     | IncomingResult { duration : Float, result : Value, logs : List String }
     | Summarize
     | Finished
@@ -159,16 +162,17 @@ init ports flags =
         reporter =
             chooseReporter flags
     in
-    ( Model ports reporter 0 Array.empty, Cmd.none )
+    ( Model ports reporter 0 Array.empty (Ok SeededRunners.Plain), Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Restart testsCount ->
-            ( Model model.ports model.reporter testsCount Array.empty
+        Restart { kind, testsCount } ->
+            -- TODO: change the "kind"
+            ( Model model.ports model.reporter testsCount Array.empty (Ok SeededRunners.Plain)
             , if testsCount == 0 then
-                model.ports.signalFinished { exitCode = 0, testsCount = testsCount }
+                delayedMsg Finished
 
               else
                 report model.ports.stdout (model.reporter.onBegin testsCount)
@@ -232,7 +236,7 @@ errorCode testResults =
 
 reportAndThenSummarize : (String -> Cmd Msg) -> Maybe String -> Cmd Msg
 reportAndThenSummarize stdout content =
-    Cmd.batch [ report stdout content, commandMsg Summarize ]
+    Cmd.batch [ report stdout content, delayedMsg Summarize ]
 
 
 report : (String -> Cmd Msg) -> Maybe String -> Cmd Msg
@@ -245,12 +249,14 @@ summarize : (String -> Cmd Msg) -> Maybe String -> Cmd Msg
 summarize stdout content =
     case content of
         Just string ->
-            Cmd.batch [ stdout string, commandMsg Finished ]
+            Cmd.batch [ stdout string, delayedMsg Finished ]
 
         Nothing ->
-            commandMsg Finished
+            delayedMsg Finished
 
 
-commandMsg : msg -> Cmd msg
-commandMsg msg =
-    Task.perform identity (Task.succeed msg)
+delayedMsg : msg -> Cmd msg
+delayedMsg msg =
+    Process.sleep 0
+        |> Task.andThen (\_ -> Task.succeed msg)
+        |> Task.perform identity

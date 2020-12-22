@@ -33,7 +33,7 @@ import Test exposing (Test)
 -}
 type alias Ports msg =
     { askTestsCount : (Value -> msg) -> Sub msg
-    , sendTestsCount : Int -> Cmd msg
+    , sendTestsCount : { kind : String, testsCount : Int } -> Cmd msg
     , receiveRunTest : (Int -> msg) -> Sub msg
     , sendResult : { id : Int, result : Value } -> Cmd msg
     }
@@ -86,7 +86,7 @@ of needed imports from user code and the list of tests to run.
     import Json.Encode exposing (Value)
 
     port askTestsCount : (Value -> msg) -> Sub msg
-    port sendTestsCount : Int -> Cmd msg
+    port sendTestsCount : { kind : String, testsCount : Int } -> Cmd msg
     port receiveRunTest : (Int  -> msg) -> Sub msg
     port sendResult : { id : Int, result : Value } -> Cmd msg
 
@@ -140,18 +140,18 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( msg, model.testRunners ) of
         -- AskTestsCount
-        ( AskTestsCount, Ok { runners } ) ->
-            ( model, model.ports.sendTestsCount (Array.length runners) )
+        ( AskTestsCount, Ok { kind, runners } ) ->
+            ( model, model.ports.sendTestsCount { kind = Debug.toString kind, testsCount = Array.length runners } )
 
-        ( AskTestsCount, Err _ ) ->
-            ( model, Debug.todo "Deal with invalid runners" )
+        ( AskTestsCount, Err err ) ->
+            ( model, model.ports.sendTestsCount { kind = "Invalid" ++ err, testsCount = 0 } )
 
         -- ReceiveRunTest
         ( ReceiveRunTest id, Ok { runners } ) ->
             ( model, sendTestResult model.ports id (SeededRunners.run id runners) )
 
         ( ReceiveRunTest _, Err _ ) ->
-            ( model, Debug.todo "Deal with invalid runners" )
+            ( model, Debug.todo "There is no test to run, how did we get here?" )
 
 
 sendTestResult : Ports msg -> Int -> Maybe TestResult -> Cmd msg
