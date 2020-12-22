@@ -7,6 +7,7 @@ module ElmTestRunner.Reporter.Console exposing (implementation)
 -}
 
 import Array exposing (Array)
+import ElmTestRunner.Failure as Failure exposing (Failure)
 import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Result as TestResult exposing (Summary, TestResult(..))
 
@@ -42,21 +43,13 @@ onResult result =
             Nothing
 
         Failed { labels, todos, failures, logs } ->
-            """
-{{ labels }}
-
-    with todos: {{ todos }}
-    with failures: {{ failures }}
-    with debug logs:
-
-{{ logs }}
-
-"""
-                |> String.replace "{{ labels }}" (formatLabels labels)
-                |> String.replace "{{ todos }}" (Debug.toString todos)
-                |> String.replace "{{ failures }}" (Debug.toString failures)
-                |> String.replace "{{ logs }}" (String.concat logs)
-                |> Just
+            Just <|
+                String.join "\n"
+                    [ ""
+                    , formatLabels labels
+                    , ""
+                    , indent (displayFailureContent todos failures logs)
+                    ]
 
 
 formatLabels : List String -> String
@@ -76,6 +69,21 @@ formatLabelsHelp formattedLines labels =
 
         ( _, loc :: location ) ->
             formatLabelsHelp (("| " ++ loc) :: formattedLines) location
+
+
+indent : String -> String
+indent str =
+    String.split "\n" str
+        |> List.map (\line -> "    " ++ line)
+        |> String.join "\n"
+
+
+displayFailureContent : List String -> List Failure -> List String -> String
+displayFailureContent todos failures logs =
+    "with todos: {{ todos }}\nwith failures: {{ failures }}\nwith debug logs:\n\n{{ logs }}\n"
+        |> String.replace "{{ todos }}" (Debug.toString todos)
+        |> String.replace "{{ failures }}" (Debug.toString failures)
+        |> String.replace "{{ logs }}" (String.concat logs)
 
 
 onEnd : Array TestResult -> Maybe String
