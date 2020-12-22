@@ -9,7 +9,6 @@ module ElmTestRunner.Reporter.Console exposing (implementation)
 import Array exposing (Array)
 import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Result as TestResult exposing (Summary, TestResult(..))
-import String.Format
 
 
 {-| Provide a console implementation of a reporter, mostly for human consumption.
@@ -29,10 +28,10 @@ onBegin { seed, fuzzRuns } testsCount =
 Running {{ testsCount }} tests. To reproduce these results later, run:
 elm-test-rs --seed {{ seed }} --fuzz {{ fuzzRuns }} {{ files }}
 """
-        |> String.Format.namedValue "testsCount" (String.fromInt testsCount)
-        |> String.Format.namedValue "seed" (String.fromInt seed)
-        |> String.Format.namedValue "fuzzRuns" (String.fromInt fuzzRuns)
-        |> String.Format.namedValue "files" "(TODO: pass files to reporter)"
+        |> String.replace "{{ testsCount }}" (String.fromInt testsCount)
+        |> String.replace "{{ seed }}" (String.fromInt seed)
+        |> String.replace "{{ fuzzRuns }}" (String.fromInt fuzzRuns)
+        |> String.replace "{{ files }}" "(TODO: pass files to reporter)"
         |> Just
 
 
@@ -53,10 +52,10 @@ onResult result =
 {{ logs }}
 
 """
-                |> String.Format.namedValue "labels" (formatLabels labels)
-                |> String.Format.namedValue "todos" (Debug.toString todos)
-                |> String.Format.namedValue "failures" (Debug.toString failures)
-                |> String.Format.namedValue "logs" (String.concat logs)
+                |> String.replace "{{ labels }}" (formatLabels labels)
+                |> String.replace "{{ todos }}" (Debug.toString todos)
+                |> String.replace "{{ failures }}" (Debug.toString failures)
+                |> String.replace "{{ logs }}" (String.concat logs)
                 |> Just
 
 
@@ -94,10 +93,10 @@ Passed:   {{ passed }}
 Failed:   {{ failed }}
 Running duration (workers): {{ duration }} ms
 """
-        |> String.Format.namedValue "result" (summaryTitle (failedCount > 0))
-        |> String.Format.namedValue "duration" (String.fromInt (round totalDuration))
-        |> String.Format.namedValue "passed" (String.fromInt passedCount)
-        |> String.Format.namedValue "failed" (String.fromInt failedCount)
+        |> String.replace "{{ result }}" (summaryTitle (failedCount > 0))
+        |> String.replace "{{ duration }}" (String.fromInt (round totalDuration))
+        |> String.replace "{{ passed }}" (String.fromInt passedCount)
+        |> String.replace "{{ failed }}" (String.fromInt failedCount)
 
 
 summaryTitle : Bool -> String

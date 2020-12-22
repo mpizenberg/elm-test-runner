@@ -11,7 +11,6 @@ import ElmTestRunner.Failure as Failure
 import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Result as TestResult exposing (TestResult(..))
 import Json.Encode as Encode
-import String.Format
 
 
 {-| Provide a Json implementation of a reporter, mostly for automated tools.
@@ -29,9 +28,9 @@ onBegin : { seed : Int, fuzzRuns : Int } -> Int -> Maybe String
 onBegin { seed, fuzzRuns } testsCount =
     """{"event":"runStart","testCount":"{{ testsCount }}","initialSeed":"{{ seed }}","fuzzRuns":"{{ fuzzRuns }}","paths":{{ paths }}}
 """
-        |> String.Format.namedValue "testsCount" (String.fromInt testsCount)
-        |> String.Format.namedValue "seed" (String.fromInt seed)
-        |> String.Format.namedValue "fuzzRuns" (String.fromInt fuzzRuns)
+        |> String.replace "{{ testsCount }}" (String.fromInt testsCount)
+        |> String.replace "{{ seed }}" (String.fromInt seed)
+        |> String.replace "{{ fuzzRuns }}" (String.fromInt fuzzRuns)
         |> Just
 
 
@@ -56,10 +55,10 @@ onResult result =
     in
     """{"event":"testCompleted","status":"{{ status }}","labels":{{ labels }},"failures":{{ failures }},"duration":"{{ duration }}"}
 """
-        |> String.Format.namedValue "status" status
-        |> String.Format.namedValue "labels" testLabels
-        |> String.Format.namedValue "failures" testFailures
-        |> String.Format.namedValue "duration" (String.fromFloat testDuration)
+        |> String.replace "{{ status }}" status
+        |> String.replace "{{ labels }}" testLabels
+        |> String.replace "{{ failures }}" testFailures
+        |> String.replace "{{ duration }}" (String.fromFloat testDuration)
         |> Just
 
 
@@ -71,7 +70,7 @@ onEnd results =
     in
     """{"event":"runComplete","passed":"{{ passed }}","failed":"{{ failed }}","duration":"{{ duration }}","autoFail":null}
 """
-        |> String.Format.namedValue "passed" (String.fromInt passedCount)
-        |> String.Format.namedValue "failed" (String.fromInt failedCount)
-        |> String.Format.namedValue "duration" (String.fromFloat totalDuration)
+        |> String.replace "{{ passed }}" (String.fromInt passedCount)
+        |> String.replace "{{ failed }}" (String.fromInt failedCount)
+        |> String.replace "{{ duration }}" (String.fromFloat totalDuration)
         |> Just
