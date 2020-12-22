@@ -55,7 +55,12 @@ onResult useColor testResult =
         Failed { labels, todos, failures, logs } ->
             if List.isEmpty todos then
                 -- We have non-TODOs still failing; report them, not the TODOs.
-                failuresToText useColor labels failures
+                List.concat
+                    [ [ failureLabelsToText labels ]
+                    , List.map (failureToText useColor) failures
+                    , [ logsToText logs ]
+                    ]
+                    |> Text.concat
                     |> Just
 
             else
@@ -73,11 +78,6 @@ formatTodo labels todo =
         , "TODO: "
         , todo
         ]
-
-
-failuresToText : UseColor -> List String -> List Failure -> Text
-failuresToText useColor labels failures =
-    Text.concat (failureLabelsToText labels :: List.map (failureToText useColor) failures)
 
 
 failureLabelsToText : List String -> Text
@@ -115,6 +115,20 @@ indent str =
     String.split "\n" str
         |> List.map (\line -> "    " ++ line)
         |> String.join "\n"
+
+
+logsToText : List String -> Text
+logsToText logs =
+    if List.isEmpty logs then
+        Text.plain ""
+
+    else
+        Text.plain <|
+            String.join "\n"
+                [ indent "with debug logs:\n"
+                , String.concat logs
+                , ""
+                ]
 
 
 
