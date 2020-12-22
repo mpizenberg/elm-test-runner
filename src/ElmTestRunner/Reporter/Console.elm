@@ -88,13 +88,18 @@ displayFailureContent todos failures logs =
 
 
 onEnd : Result String Kind -> Array TestResult -> Maybe String
-onEnd kind testResults =
-    formatSummary (TestResult.summary testResults)
-        |> Just
+onEnd kindResult testResults =
+    case kindResult of
+        Err err ->
+            Just ("Your tests are invalid: " ++ err ++ "\n")
+
+        Ok kind ->
+            formatSummary kind (TestResult.summary testResults)
+                |> Just
 
 
-formatSummary : Summary -> String
-formatSummary { totalDuration, passedCount, failedCount } =
+formatSummary : Kind -> Summary -> String
+formatSummary kind { totalDuration, passedCount, failedCount, todoCount } =
     """
 TEST RUN {{ result }}
 
@@ -102,16 +107,29 @@ Passed:   {{ passed }}
 Failed:   {{ failed }}
 Running duration (workers): {{ duration }} ms
 """
-        |> String.replace "{{ result }}" (summaryTitle (failedCount > 0))
+        |> String.replace "{{ result }}" (summaryTitle kind failedCount todoCount)
         |> String.replace "{{ duration }}" (String.fromInt (round totalDuration))
         |> String.replace "{{ passed }}" (String.fromInt passedCount)
         |> String.replace "{{ failed }}" (String.fromInt failedCount)
 
 
-summaryTitle : Bool -> String
-summaryTitle failed =
-    if failed then
-        "FAILED"
+summaryTitle : Kind -> Int -> Int -> String
+summaryTitle kind failedCount todoCount =
+    case ( kind, failedCount, todoCount ) of
+        ( Plain, 0, 0 ) ->
+            "PASSED"
 
-    else
-        "PASSED"
+        ( Plain, 0, 1 ) ->
+            "INCOMPLETE (because there is a Test.todo left)"
+
+        ( Plain, 0, _ ) ->
+            "INCOMPLETE (because there are some Test.todo left)"
+
+        ( Only, 0, _ ) ->
+            "INCOMPLETE (because Test.only was used)"
+
+        ( Skipping, 0, _ ) ->
+            "INCOMPLETE (because at least one test is skipped)"
+
+        _ ->
+            "FAILED"

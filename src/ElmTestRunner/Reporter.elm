@@ -176,7 +176,7 @@ update msg model =
                 ( { model | kind = kindFromString kind }, delayedMsg Summarize )
 
             else
-                ( { model | testsCount = testsCount }
+                ( { model | kind = kindFromString kind, testsCount = testsCount }
                 , report model.ports.stdout (model.reporter.onBegin testsCount)
                 )
 
