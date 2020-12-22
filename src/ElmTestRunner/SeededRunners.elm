@@ -1,8 +1,8 @@
-module ElmTestRunner.SeededRunners exposing (SeededRunners, Kind(..), empty, fromTest, run)
+module ElmTestRunner.SeededRunners exposing (SeededRunners, Kind(..), empty, fromTest, run, kindFromString, kindToString)
 
 {-| Helper module to prepare and run test runners.
 
-@docs SeededRunners, Kind, empty, fromTest, run
+@docs SeededRunners, Kind, empty, fromTest, run, kindFromString, kindToString
 
 -}
 
@@ -29,6 +29,39 @@ type Kind
     = Plain
     | Only
     | Skipping
+
+
+{-| Parse a kind from a String.
+-}
+kindFromString : String -> Result String Kind
+kindFromString input =
+    case input of
+        "Plain" ->
+            Ok Plain
+
+        "Only" ->
+            Ok Only
+
+        "Skipping" ->
+            Ok Skipping
+
+        _ ->
+            Err input
+
+
+{-| Serialize a kind to a String.
+-}
+kindToString : Kind -> String
+kindToString kind =
+    case kind of
+        Plain ->
+            "Plain"
+
+        Only ->
+            "Only"
+
+        Skipping ->
+            "Skipping"
 
 
 {-| Create an empty SeededRunners when there isn't any test

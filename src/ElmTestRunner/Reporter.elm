@@ -23,7 +23,7 @@ import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Reporter.Json as ReporterJson
 import ElmTestRunner.Reporter.Junit as ReporterJunit
 import ElmTestRunner.Result as TestResult exposing (TestResult)
-import ElmTestRunner.SeededRunners as SeededRunners
+import ElmTestRunner.SeededRunners as SeededRunners exposing (kindFromString)
 import Json.Decode exposing (Value, decodeValue)
 import Process
 import Task
@@ -169,14 +169,16 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Restart { kind, testsCount } ->
-            -- TODO: change the "kind"
-            ( Model model.ports model.reporter testsCount Array.empty (Ok SeededRunners.Plain)
-            , if testsCount == 0 then
-                delayedMsg Finished
+            if String.startsWith "Invalid" kind then
+                ( { model | kind = Err (String.dropLeft 7 kind) }, delayedMsg Summarize )
 
-              else
-                report model.ports.stdout (model.reporter.onBegin testsCount)
-            )
+            else if testsCount == 0 then
+                ( { model | kind = kindFromString kind }, delayedMsg Summarize )
+
+            else
+                ( { model | testsCount = testsCount }
+                , report model.ports.stdout (model.reporter.onBegin testsCount)
+                )
 
         IncomingResult { duration, result, logs } ->
             let

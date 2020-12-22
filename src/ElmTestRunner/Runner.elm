@@ -19,7 +19,7 @@ module ElmTestRunner.Runner exposing
 
 import Array
 import ElmTestRunner.Result as TestResult exposing (TestResult)
-import ElmTestRunner.SeededRunners as SeededRunners exposing (SeededRunners)
+import ElmTestRunner.SeededRunners as SeededRunners exposing (SeededRunners, kindToString)
 import Json.Encode exposing (Value)
 import Platform
 import Test exposing (Test)
@@ -141,7 +141,7 @@ update msg model =
     case ( msg, model.testRunners ) of
         -- AskTestsCount
         ( AskTestsCount, Ok { kind, runners } ) ->
-            ( model, model.ports.sendTestsCount { kind = Debug.toString kind, testsCount = Array.length runners } )
+            ( model, model.ports.sendTestsCount { kind = kindToString kind, testsCount = Array.length runners } )
 
         ( AskTestsCount, Err err ) ->
             ( model, model.ports.sendTestsCount { kind = "Invalid" ++ err, testsCount = 0 } )
