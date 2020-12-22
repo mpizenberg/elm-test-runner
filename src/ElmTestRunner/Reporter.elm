@@ -19,6 +19,7 @@ module ElmTestRunner.Reporter exposing
 
 import Array exposing (Array)
 import ElmTestRunner.Reporter.Console as ReporterConsole
+import ElmTestRunner.Reporter.ConsoleBis as ReporterConsoleBis
 import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Reporter.Json as ReporterJson
 import ElmTestRunner.Reporter.Junit as ReporterJunit
@@ -153,7 +154,8 @@ chooseReporter { initialSeed, fuzzRuns, mode } =
             ReporterJunit.implementation
 
         _ ->
-            ReporterConsole.implementation { seed = initialSeed, fuzzRuns = fuzzRuns }
+            -- ReporterConsole.implementation { seed = initialSeed, fuzzRuns = fuzzRuns }
+            ReporterConsoleBis.implementation { seed = initialSeed, fuzzRuns = fuzzRuns }
 
 
 init : Ports Msg -> Flags -> ( Model, Cmd Msg )
@@ -217,23 +219,23 @@ update msg model =
         Finished ->
             ( model
             , model.ports.signalFinished
-                { exitCode = errorCode model.testResults
+                { exitCode = errorCode model.kind model.testResults
                 , testsCount = model.testsCount
                 }
             )
 
 
-errorCode : Array TestResult -> Int
-errorCode testResults =
+errorCode : Result String SeededRunners.Kind -> Array TestResult -> Int
+errorCode kindResult testResults =
     let
-        { failedCount } =
+        { failedCount, todoCount } =
             TestResult.summary testResults
     in
-    if failedCount > 0 then
-        2
+    if kindResult == Ok SeededRunners.Plain && failedCount + todoCount == 0 then
+        0
 
     else
-        0
+        2
 
 
 reportAndThenSummarize : (String -> Cmd Msg) -> Maybe String -> Cmd Msg
