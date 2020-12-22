@@ -1,4 +1,4 @@
-module ElmTestRunner.Reporter.Console exposing (implementation)
+module ElmTestRunner.Reporter.ConsoleDebug exposing (implementation)
 
 {-| Console implementation of a reporter
 
@@ -7,7 +7,7 @@ module ElmTestRunner.Reporter.Console exposing (implementation)
 -}
 
 import Array exposing (Array)
-import ElmTestRunner.Failure as Failure exposing (Failure)
+import ElmTestRunner.Failure exposing (Failure)
 import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Result as TestResult exposing (Summary, TestResult(..))
 import ElmTestRunner.SeededRunners exposing (Kind(..))

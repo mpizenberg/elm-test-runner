@@ -7,7 +7,8 @@
     "exposed-modules": [
         "ElmTestRunner.Failure",
         "ElmTestRunner.Reporter",
-        "ElmTestRunner.Reporter.Console",
+        "ElmTestRunner.Reporter.ConsoleColor",
+        "ElmTestRunner.Reporter.ConsoleDebug",
         "ElmTestRunner.Reporter.Interface",
         "ElmTestRunner.Reporter.Json",
         "ElmTestRunner.Reporter.Junit",

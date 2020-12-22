@@ -1,4 +1,4 @@
-module ElmTestRunner.Reporter.ConsoleBis exposing (implementation)
+module ElmTestRunner.Reporter.ConsoleColor exposing (implementation)
 
 import Array exposing (Array)
 import ElmTestRunner.Failure exposing (Failure)
@@ -6,7 +6,7 @@ import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Result as TestResult exposing (Summary, TestResult(..))
 import ElmTestRunner.SeededRunners exposing (Kind(..))
 import ElmTestRunner.Vendor.ConsoleFormat exposing (format)
-import ElmTestRunner.Vendor.ConsoleText as Text exposing (..)
+import ElmTestRunner.Vendor.ConsoleText as Text exposing (Text, UseColor, dark, green, plain, red, underline, yellow)
 import ElmTestRunner.Vendor.FormatColor as FormatColor
 import ElmTestRunner.Vendor.FormatMonochrome as FormatMonochrome
 import Test.Runner exposing (formatLabels)
@@ -15,15 +15,17 @@ import Test.Runner exposing (formatLabels)
 {-| Provide a console implementation of a reporter, mostly for human consumption.
 Require the initial random seed and number of fuzz runs.
 -}
-implementation : { seed : Int, fuzzRuns : Int } -> Interface
-implementation options =
-    { onBegin = onBegin options
-    , onResult = onResult
-    , onEnd = onEnd
+implementation : UseColor -> { seed : Int, fuzzRuns : Int } -> Interface
+implementation useColor options =
+    { onBegin = onBegin options >> Maybe.map (Text.render useColor)
+    , onResult = onResult useColor >> Maybe.map (Text.render useColor)
+    , onEnd = \kindResult testResults -> Maybe.map (Text.render useColor) (onEnd kindResult testResults)
     }
 
 
-onBegin : { seed : Int, fuzzRuns : Int } -> Int -> Maybe String
+{-| Text output when starting the test runners.
+-}
+onBegin : { seed : Int, fuzzRuns : Int } -> Int -> Maybe Text
 onBegin { seed, fuzzRuns } testsCount =
     """
 Running {{ testsCount }} tests. To reproduce these results later, run:
@@ -34,6 +36,7 @@ elm-test-rs --seed {{ seed }} --fuzz {{ fuzzRuns }} {{ files }}
         |> String.replace "{{ seed }}" (String.fromInt seed)
         |> String.replace "{{ fuzzRuns }}" (String.fromInt fuzzRuns)
         |> String.replace "{{ files }}" "(TODO: pass files to reporter)"
+        |> plain
         |> Just
 
 
@@ -41,13 +44,10 @@ elm-test-rs --seed {{ seed }} --fuzz {{ fuzzRuns }} {{ files }}
 --
 
 
-onResult : TestResult -> Maybe String
-onResult testResult =
-    let
-        useColor =
-            -- Text.Monochrome
-            Text.UseColor
-    in
+{-| Text output when receiving a test result.
+-}
+onResult : UseColor -> TestResult -> Maybe Text
+onResult useColor testResult =
     case testResult of
         Passed _ ->
             Nothing
@@ -56,12 +56,12 @@ onResult testResult =
             if List.isEmpty todos then
                 -- We have non-TODOs still failing; report them, not the TODOs.
                 failuresToText useColor labels failures
-                    |> Text.render useColor
                     |> Just
 
             else
                 List.map (\todo -> formatTodo labels todo ++ "\n") todos
                     |> String.concat
+                    |> plain
                     |> Just
 
 
@@ -90,10 +90,10 @@ failureToText useColor { given, description, reason } =
     let
         formatEquality =
             case useColor of
-                Monochrome ->
+                Text.Monochrome ->
                     FormatMonochrome.formatEquality
 
-                UseColor ->
+                Text.UseColor ->
                     FormatColor.formatEquality
 
         messageText =
@@ -121,24 +121,23 @@ indent str =
 --
 
 
-onEnd : Result String Kind -> Array TestResult -> Maybe String
+{-| Text output when finishing running the tests.
+-}
+onEnd : Result String Kind -> Array TestResult -> Maybe Text
 onEnd kindResult testResults =
     case kindResult of
         Err err ->
-            Just ("Your tests are invalid: " ++ err ++ "\n")
+            plain ("Your tests are invalid: " ++ err ++ "\n")
+                |> Just
 
         Ok kind ->
             formatSummary kind (TestResult.summary testResults)
                 |> Just
 
 
-formatSummary : Kind -> Summary -> String
+formatSummary : Kind -> Summary -> Text
 formatSummary kind { totalDuration, passedCount, failedCount, todoCount } =
     let
-        useColor =
-            -- Text.Monochrome
-            Text.UseColor
-
         headlineResult =
             case ( kind, failedCount, todoCount ) of
                 ( Plain, 0, 0 ) ->
@@ -186,7 +185,6 @@ formatSummary kind { totalDuration, passedCount, failedCount, todoCount } =
     , todoStats
     ]
         |> Text.concat
-        |> Text.render useColor
 
 
 stat : String -> String -> Text

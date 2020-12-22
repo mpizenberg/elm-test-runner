@@ -18,13 +18,14 @@ module ElmTestRunner.Reporter exposing
 -}
 
 import Array exposing (Array)
-import ElmTestRunner.Reporter.Console as ReporterConsole
-import ElmTestRunner.Reporter.ConsoleBis as ReporterConsoleBis
+import ElmTestRunner.Reporter.ConsoleColor as ReporterConsoleColor
+import ElmTestRunner.Reporter.ConsoleDebug as ReporterConsoleDebug
 import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Reporter.Json as ReporterJson
 import ElmTestRunner.Reporter.Junit as ReporterJunit
 import ElmTestRunner.Result as TestResult exposing (TestResult)
 import ElmTestRunner.SeededRunners as SeededRunners exposing (kindFromString)
+import ElmTestRunner.Vendor.ConsoleText as Text
 import Json.Decode exposing (Value, decodeValue)
 import Process
 import Task
@@ -154,8 +155,9 @@ chooseReporter { initialSeed, fuzzRuns, mode } =
             ReporterJunit.implementation
 
         _ ->
-            -- ReporterConsole.implementation { seed = initialSeed, fuzzRuns = fuzzRuns }
-            ReporterConsoleBis.implementation { seed = initialSeed, fuzzRuns = fuzzRuns }
+            -- ReporterConsoleDebug.implementation { seed = initialSeed, fuzzRuns = fuzzRuns }
+            -- ReporterConsoleColor.implementation Text.Monochrome { seed = initialSeed, fuzzRuns = fuzzRuns }
+            ReporterConsoleColor.implementation Text.UseColor { seed = initialSeed, fuzzRuns = fuzzRuns }
 
 
 init : Ports Msg -> Flags -> ( Model, Cmd Msg )
