@@ -1,6 +1,7 @@
 # elm-test-runner
 
 Helper elm package to run elm tests and report results.
+**WARNING:** please do not use outside of the elm-test-rs tests runner.
 
 
 ## Test runner architecture
