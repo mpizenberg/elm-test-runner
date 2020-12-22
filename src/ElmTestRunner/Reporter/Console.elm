@@ -10,6 +10,7 @@ import Array exposing (Array)
 import ElmTestRunner.Failure as Failure exposing (Failure)
 import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Result as TestResult exposing (Summary, TestResult(..))
+import ElmTestRunner.SeededRunners exposing (Kind(..))
 
 
 {-| Provide a console implementation of a reporter, mostly for human consumption.
@@ -86,8 +87,8 @@ displayFailureContent todos failures logs =
         |> String.replace "{{ logs }}" (String.concat logs)
 
 
-onEnd : Array TestResult -> Maybe String
-onEnd testResults =
+onEnd : Result String Kind -> Array TestResult -> Maybe String
+onEnd kind testResults =
     formatSummary (TestResult.summary testResults)
         |> Just
 

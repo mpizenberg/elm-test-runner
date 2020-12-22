@@ -10,6 +10,7 @@ import Array exposing (Array)
 import Dict
 import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Result as TestResult exposing (TestResult)
+import ElmTestRunner.SeededRunners exposing (Kind(..))
 import Xml
 import Xml.Encode as Encode
 
@@ -20,12 +21,12 @@ implementation : Interface
 implementation =
     { onBegin = always Nothing
     , onResult = always Nothing
-    , onEnd = Just << summary
+    , onEnd = \kind result -> Just (summary kind result)
     }
 
 
-summary : Array TestResult -> String
-summary results =
+summary : Result String Kind -> Array TestResult -> String
+summary kind results =
     let
         { totalDuration, failedCount } =
             TestResult.summary results

@@ -10,6 +10,7 @@ import Array exposing (Array)
 import ElmTestRunner.Failure as Failure
 import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Result as TestResult exposing (TestResult(..))
+import ElmTestRunner.SeededRunners exposing (Kind(..))
 import Json.Encode as Encode
 
 
@@ -62,8 +63,8 @@ onResult result =
         |> Just
 
 
-onEnd : Array TestResult -> Maybe String
-onEnd results =
+onEnd : Result String Kind -> Array TestResult -> Maybe String
+onEnd kind results =
     let
         { totalDuration, passedCount, failedCount } =
             TestResult.summary results

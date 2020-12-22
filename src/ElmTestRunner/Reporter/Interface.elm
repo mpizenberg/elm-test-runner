@@ -8,6 +8,7 @@ module ElmTestRunner.Reporter.Interface exposing (Interface)
 
 import Array exposing (Array)
 import ElmTestRunner.Result exposing (TestResult)
+import ElmTestRunner.SeededRunners exposing (Kind)
 
 
 {-| Interface that must be implemented by a reporter.
@@ -27,5 +28,5 @@ has to be logged by the reporter.
 type alias Interface =
     { onBegin : Int -> Maybe String
     , onResult : TestResult -> Maybe String
-    , onEnd : Array TestResult -> Maybe String
+    , onEnd : Result String Kind -> Array TestResult -> Maybe String
     }

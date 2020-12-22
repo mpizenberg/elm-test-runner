@@ -212,7 +212,7 @@ update msg model =
                 )
 
         Summarize ->
-            ( model, summarize model.ports.stdout (model.reporter.onEnd model.testResults) )
+            ( model, summarize model.ports.stdout (model.reporter.onEnd model.kind model.testResults) )
 
         Finished ->
             ( model
