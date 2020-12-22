@@ -154,10 +154,14 @@ chooseReporter { initialSeed, fuzzRuns, mode } =
         "junit" ->
             ReporterJunit.implementation
 
-        _ ->
-            -- ReporterConsoleDebug.implementation { seed = initialSeed, fuzzRuns = fuzzRuns }
-            -- ReporterConsoleColor.implementation Text.Monochrome { seed = initialSeed, fuzzRuns = fuzzRuns }
+        "consoleColor" ->
             ReporterConsoleColor.implementation Text.UseColor { seed = initialSeed, fuzzRuns = fuzzRuns }
+
+        "consoleNoColor" ->
+            ReporterConsoleColor.implementation Text.Monochrome { seed = initialSeed, fuzzRuns = fuzzRuns }
+
+        _ ->
+            ReporterConsoleDebug.implementation { seed = initialSeed, fuzzRuns = fuzzRuns }
 
 
 init : Ports Msg -> Flags -> ( Model, Cmd Msg )
