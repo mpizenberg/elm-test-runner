@@ -1,5 +1,11 @@
 module ElmTestRunner.Reporter.ConsoleColor exposing (implementation)
 
+{-| Console reporter with color support
+
+@docs implementation
+
+-}
+
 import Array exposing (Array)
 import ElmTestRunner.Failure exposing (Failure)
 import ElmTestRunner.Reporter.Interface exposing (Interface)
