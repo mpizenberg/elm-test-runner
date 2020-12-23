@@ -48,6 +48,7 @@ type alias Ports msg =
 type alias Flags =
     { initialSeed : Int
     , fuzzRuns : Int
+    , filter : Maybe String
     }
 
 

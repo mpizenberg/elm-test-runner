@@ -74,20 +74,30 @@ empty =
 {-| Convert a "master" test into seeded runners.
 That "master" test usually is the concatenation of all exposed tests.
 -}
-fromTest : Test -> { initialSeed : Int, fuzzRuns : Int } -> SeededRunners
-fromTest masterTest { initialSeed, fuzzRuns } =
+fromTest : Test -> { initialSeed : Int, fuzzRuns : Int, filter : Maybe String } -> SeededRunners
+fromTest masterTest { initialSeed, fuzzRuns, filter } =
     case Test.Runner.fromTest fuzzRuns (Random.initialSeed initialSeed) masterTest of
         Test.Runner.Plain runnerList ->
-            Ok { kind = Plain, runners = Array.fromList runnerList }
+            Ok { kind = Plain, runners = Array.fromList (filterRunners filter runnerList) }
 
         Test.Runner.Only runnerList ->
             Ok { kind = Only, runners = Array.fromList runnerList }
 
         Test.Runner.Skipping runnerList ->
-            Ok { kind = Skipping, runners = Array.fromList runnerList }
+            Ok { kind = Skipping, runners = Array.fromList (filterRunners filter runnerList) }
 
         Test.Runner.Invalid error ->
             Err error
+
+
+filterRunners : Maybe String -> List Runner -> List Runner
+filterRunners filter runners =
+    case filter of
+        Nothing ->
+            runners
+
+        Just pattern ->
+            List.filter (\r -> List.any (String.contains pattern) r.labels) runners
 
 
 {-| Run a given test if the id is in range.
