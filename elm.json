@@ -11,6 +11,7 @@
         "ElmTestRunner.Reporter.ConsoleDebug",
         "ElmTestRunner.Reporter.Interface",
         "ElmTestRunner.Reporter.Json",
+        "ElmTestRunner.Reporter.Exercism",
         "ElmTestRunner.Reporter.Junit",
         "ElmTestRunner.Result",
         "ElmTestRunner.Runner",

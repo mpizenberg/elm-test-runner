@@ -20,6 +20,7 @@ module ElmTestRunner.Reporter exposing
 import Array exposing (Array)
 import ElmTestRunner.Reporter.ConsoleColor as ReporterConsoleColor
 import ElmTestRunner.Reporter.ConsoleDebug as ReporterConsoleDebug
+import ElmTestRunner.Reporter.Exercism as ReporterExercism
 import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Reporter.Json as ReporterJson
 import ElmTestRunner.Reporter.Junit as ReporterJunit
@@ -153,6 +154,9 @@ chooseReporter { initialSeed, fuzzRuns, mode } =
 
         "junit" ->
             ReporterJunit.implementation
+
+        "exercism" ->
+            ReporterExercism.implementation
 
         "consoleColor" ->
             ReporterConsoleColor.implementation Text.UseColor { seed = initialSeed, fuzzRuns = fuzzRuns }
