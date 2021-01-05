@@ -102,7 +102,7 @@ encodeExercismResult { name, status, message, output } =
         , ( "status", Encode.string status )
         , ( "message", Maybe.withDefault Encode.null (Maybe.map Encode.string message) )
         , ( "output", Maybe.withDefault Encode.null (Maybe.map Encode.string output) )
-        , ( "test_code", Encode.string "" )
+        , ( "test_code", Encode.null )
         ]
 
 
