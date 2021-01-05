@@ -110,14 +110,14 @@ toExercismResult : TestResult -> ExercismResult
 toExercismResult testResult =
     case testResult of
         TestResult.Passed { labels } ->
-            { name = String.join " > " labels
+            { name = String.join " > " (List.reverse labels)
             , status = "pass"
             , message = Nothing
             , output = Nothing
             }
 
         TestResult.Failed { labels, failures, todos, logs } ->
-            { name = String.join " > " labels
+            { name = String.join " > " (List.reverse labels)
             , status = "fail"
             , message = Just (failureMessage failures todos)
             , output =
