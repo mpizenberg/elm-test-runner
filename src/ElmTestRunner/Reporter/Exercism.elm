@@ -33,6 +33,7 @@ implementation =
 
 
 -- {
+--   "version": 2,
 --   "status": "fail",
 --   "message": null,
 --   "tests": [
@@ -53,7 +54,8 @@ summary kindOrErr results =
         Err err ->
             Encode.encode 2
                 (Encode.object
-                    [ ( "status", Encode.string "error" )
+                    [ ( "version", Encode.int 2 )
+                    , ( "status", Encode.string "error" )
                     , ( "message", Encode.string err )
                     ]
                 )
@@ -68,7 +70,8 @@ summary kindOrErr results =
             in
             Encode.encode 2
                 (Encode.object
-                    [ ( "status", Encode.string status )
+                    [ ( "version", Encode.int 2 )
+                    , ( "status", Encode.string status )
                     , ( "tests", Encode.array encodeExercismResult tests )
                     ]
                 )
