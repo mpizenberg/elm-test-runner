@@ -78,10 +78,25 @@ onEnd kind results =
     let
         { totalDuration, passedCount, failedCount } =
             TestResult.summary results
+
+        autofail =
+            case kind of
+                Ok Plain ->
+                    "null"
+
+                Ok Only ->
+                    "\"Test.only was used\""
+
+                Ok Skipping ->
+                    "\"Test.skip was used\""
+
+                Err err ->
+                    "\"" ++ err ++ "\""
     in
-    """{"event":"runComplete","passed":"{{ passed }}","failed":"{{ failed }}","duration":"{{ duration }}","autoFail":null}
+    """{"event":"runComplete","passed":"{{ passed }}","failed":"{{ failed }}","duration":"{{ duration }}","autoFail":{{ autofail }}}
 """
         |> String.replace "{{ passed }}" (String.fromInt passedCount)
         |> String.replace "{{ failed }}" (String.fromInt failedCount)
         |> String.replace "{{ duration }}" (String.fromFloat totalDuration)
+        |> String.replace "{{ autofail }}" autofail
         |> Just
