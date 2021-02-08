@@ -27,11 +27,13 @@ implementation options =
 
 onBegin : { seed : Int, fuzzRuns : Int } -> Int -> Maybe String
 onBegin { seed, fuzzRuns } testsCount =
-    """{"event":"runStart","testCount":"{{ testsCount }}","initialSeed":"{{ seed }}","fuzzRuns":"{{ fuzzRuns }}","paths":{{ paths }}}
+    """{"event":"runStart","testCount":"{{ testsCount }}","initialSeed":"{{ seed }}","fuzzRuns":"{{ fuzzRuns }}","globs":[{{ globs }}],"paths":[{{ paths }}]}
 """
         |> String.replace "{{ testsCount }}" (String.fromInt testsCount)
         |> String.replace "{{ seed }}" (String.fromInt seed)
         |> String.replace "{{ fuzzRuns }}" (String.fromInt fuzzRuns)
+        |> String.replace "{{ globs }}" ""
+        |> String.replace "{{ paths }}" ""
         |> Just
 
 
