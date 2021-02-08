@@ -103,13 +103,21 @@ summary kind results =
 encodeTestResult : TestResult -> Xml.Value
 encodeTestResult result =
     let
-        ( labels, duration, failures ) =
+        { labels, duration, failures, logs } =
             case result of
                 TestResult.Passed test ->
-                    ( test.labels, test.duration, Encode.null )
+                    { labels = test.labels
+                    , duration = test.duration
+                    , failures = Encode.null
+                    , logs = test.logs
+                    }
 
                 TestResult.Failed test ->
-                    ( test.labels, test.duration, encodeFailures test.failures test.todos )
+                    { labels = test.labels
+                    , duration = test.duration
+                    , failures = encodeFailures test.failures test.todos
+                    , logs = test.logs
+                    }
 
         ( class, name ) =
             classAndName labels
@@ -126,6 +134,11 @@ encodeTestResult result =
 
                 -- Time taken (in seconds) to execute the test.
                 , ( "time", Encode.float (duration / 1000) )
+
+                -- Data that was written to standard out while the test was executed.
+                -- Normally this is not an attribute inside "testcase" but a tag inside "testsuite" but here we bend the rules
+                -- to get the Debug.log outputs for this particular test.
+                , ( "system-out", Encode.string (String.join "\n" logs) )
                 ]
     in
     Encode.object
