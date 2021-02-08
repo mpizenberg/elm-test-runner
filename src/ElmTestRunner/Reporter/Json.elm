@@ -28,14 +28,18 @@ implementation options =
 
 onBegin : { seed : Int, fuzzRuns : Int, globs : List String, paths : List String } -> Int -> Maybe String
 onBegin { seed, fuzzRuns, globs, paths } testsCount =
-    """{"event":"runStart","testCount":"{{ testsCount }}","initialSeed":"{{ seed }}","fuzzRuns":"{{ fuzzRuns }}","globs":{{ globs }},"paths":{{ paths }}}
-"""
-        |> String.replace "{{ testsCount }}" (String.fromInt testsCount)
-        |> String.replace "{{ seed }}" (String.fromInt seed)
-        |> String.replace "{{ fuzzRuns }}" (String.fromInt fuzzRuns)
-        |> String.replace "{{ globs }}" (Encode.encode 0 <| Encode.list Encode.string globs)
-        |> String.replace "{{ paths }}" (Encode.encode 0 <| Encode.list Encode.string paths)
-        |> Just
+    Just <|
+        (Encode.encode 0 <|
+            Encode.object
+                [ ( "event", Encode.string "runStart" )
+                , ( "testsCount", Encode.string (String.fromInt testsCount) )
+                , ( "seed", Encode.string (String.fromInt seed) )
+                , ( "fuzzRuns", Encode.string (String.fromInt fuzzRuns) )
+                , ( "globs", Encode.list Encode.string globs )
+                , ( "paths", Encode.list Encode.string paths )
+                ]
+        )
+            ++ "\n"
 
 
 onResult : TestResult -> Maybe String
@@ -45,33 +49,37 @@ onResult result =
             case result of
                 Passed { labels, duration } ->
                     { status = "pass"
-                    , testLabels = Encode.encode 0 (Encode.list Encode.string (List.reverse labels))
-                    , testFailures = "[]"
+                    , testLabels = List.reverse labels
+                    , testFailures = Encode.list Encode.string []
                     , testDuration = duration
                     }
 
                 Failed { labels, duration, todos, failures } ->
                     if not (List.isEmpty todos) then
                         { status = "todo"
-                        , testLabels = Encode.encode 0 (Encode.list Encode.string (List.reverse labels))
-                        , testFailures = Encode.encode 0 (Encode.list Encode.string todos)
+                        , testLabels = List.reverse labels
+                        , testFailures = Encode.list Encode.string todos
                         , testDuration = duration
                         }
 
                     else
                         { status = "fail"
-                        , testLabels = Encode.encode 0 (Encode.list Encode.string (List.reverse labels))
-                        , testFailures = Encode.encode 0 (Encode.list jsonEncodeFailure failures)
+                        , testLabels = List.reverse labels
+                        , testFailures = Encode.list jsonEncodeFailure failures
                         , testDuration = duration
                         }
     in
-    """{"event":"testCompleted","status":"{{ status }}","labels":{{ labels }},"failures":{{ failures }},"duration":"{{ duration }}"}
-"""
-        |> String.replace "{{ status }}" status
-        |> String.replace "{{ labels }}" testLabels
-        |> String.replace "{{ failures }}" testFailures
-        |> String.replace "{{ duration }}" (String.fromFloat testDuration)
-        |> Just
+    Just <|
+        (Encode.encode 0 <|
+            Encode.object
+                [ ( "event", Encode.string "testsCompleted" )
+                , ( "status", Encode.string status )
+                , ( "labels", Encode.list Encode.string testLabels )
+                , ( "failures", testFailures )
+                , ( "duration", Encode.string (String.fromFloat testDuration) )
+                ]
+        )
+            ++ "\n"
 
 
 onEnd : Result String Kind -> Array TestResult -> Maybe String
@@ -83,24 +91,28 @@ onEnd kind results =
         autofail =
             case kind of
                 Ok Plain ->
-                    "null"
+                    Encode.null
 
                 Ok Only ->
-                    "\"Test.only was used\""
+                    Encode.string "Test.only was used"
 
                 Ok Skipping ->
-                    "\"Test.skip was used\""
+                    Encode.string "Test.skip was used"
 
                 Err err ->
-                    "\"" ++ err ++ "\""
+                    Encode.string err
     in
-    """{"event":"runComplete","passed":"{{ passed }}","failed":"{{ failed }}","duration":"{{ duration }}","autoFail":{{ autofail }}}
-"""
-        |> String.replace "{{ passed }}" (String.fromInt passedCount)
-        |> String.replace "{{ failed }}" (String.fromInt failedCount)
-        |> String.replace "{{ duration }}" (String.fromFloat totalDuration)
-        |> String.replace "{{ autofail }}" autofail
-        |> Just
+    Just <|
+        (Encode.encode 0 <|
+            Encode.object
+                [ ( "event", Encode.string "runComplete" )
+                , ( "passed", Encode.string (String.fromInt passedCount) )
+                , ( "failed", Encode.string (String.fromInt failedCount) )
+                , ( "duration", Encode.string (String.fromFloat totalDuration) )
+                , ( "autoFail", autofail )
+                ]
+        )
+            ++ "\n"
 
 
 jsonEncodeFailure : Failure -> Encode.Value
