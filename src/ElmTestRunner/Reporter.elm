@@ -119,6 +119,8 @@ type alias Flags =
     { initialSeed : Int
     , fuzzRuns : Int
     , mode : String
+    , globs : List String
+    , paths : List String
     }
 
 
@@ -147,10 +149,10 @@ type Msg
 
 
 chooseReporter : Flags -> Interface
-chooseReporter { initialSeed, fuzzRuns, mode } =
+chooseReporter { initialSeed, fuzzRuns, mode, globs, paths } =
     case mode of
         "json" ->
-            ReporterJson.implementation { seed = initialSeed, fuzzRuns = fuzzRuns }
+            ReporterJson.implementation { seed = initialSeed, fuzzRuns = fuzzRuns, globs = globs, paths = paths }
 
         "junit" ->
             ReporterJunit.implementation
