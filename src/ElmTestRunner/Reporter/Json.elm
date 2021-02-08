@@ -7,11 +7,12 @@ module ElmTestRunner.Reporter.Json exposing (implementation)
 -}
 
 import Array exposing (Array)
-import ElmTestRunner.Failure as Failure
+import ElmTestRunner.Failure exposing (Failure)
 import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Result as TestResult exposing (TestResult(..))
 import ElmTestRunner.SeededRunners exposing (Kind(..))
 import Json.Encode as Encode
+import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
 {-| Provide a Json implementation of a reporter, mostly for automated tools.
@@ -60,7 +61,7 @@ onResult result =
                     else
                         { status = "fail"
                         , testLabels = Encode.encode 0 (Encode.list Encode.string (List.reverse labels))
-                        , testFailures = Encode.encode 0 (Encode.list Failure.encode failures)
+                        , testFailures = Encode.encode 0 (Encode.list jsonEncodeFailure failures)
                         , testDuration = duration
                         }
     in
@@ -100,3 +101,78 @@ onEnd kind results =
         |> String.replace "{{ duration }}" (String.fromFloat totalDuration)
         |> String.replace "{{ autofail }}" autofail
         |> Just
+
+
+jsonEncodeFailure : Failure -> Encode.Value
+jsonEncodeFailure { given, description, reason } =
+    Encode.object
+        [ ( "given", Maybe.withDefault Encode.null (Maybe.map Encode.string given) )
+        , ( "message", Encode.string description )
+        , ( "reason", encodeReason description reason )
+        ]
+
+
+encodeReasonType : String -> Encode.Value -> Encode.Value
+encodeReasonType reasonType data =
+    Encode.object
+        [ ( "type", Encode.string reasonType ), ( "data", data ) ]
+
+
+encodeReason : String -> Reason -> Encode.Value
+encodeReason description reason =
+    case reason of
+        Custom ->
+            Encode.string description
+                |> encodeReasonType "Custom"
+
+        Equality expected actual ->
+            [ ( "expected", Encode.string expected )
+            , ( "actual", Encode.string actual )
+            , ( "comparison", Encode.string description )
+            ]
+                |> Encode.object
+                |> encodeReasonType "Equality"
+
+        Comparison first second ->
+            [ ( "first", Encode.string first )
+            , ( "second", Encode.string second )
+            , ( "comparison", Encode.string description )
+            ]
+                |> Encode.object
+                |> encodeReasonType "Comparison"
+
+        TODO ->
+            Encode.string description
+                |> encodeReasonType "TODO"
+
+        Invalid BadDescription ->
+            let
+                explanation =
+                    if description == "" then
+                        "The empty string is not a valid test description."
+
+                    else
+                        "This is an invalid test description: " ++ description
+            in
+            Encode.string explanation
+                |> encodeReasonType "Invalid"
+
+        Invalid _ ->
+            Encode.string description
+                |> encodeReasonType "Invalid"
+
+        ListDiff expected actual ->
+            [ ( "expected", Encode.list Encode.string expected )
+            , ( "actual", Encode.list Encode.string actual )
+            ]
+                |> Encode.object
+                |> encodeReasonType "ListDiff"
+
+        CollectionDiff { expected, actual, extra, missing } ->
+            [ ( "expected", Encode.string expected )
+            , ( "actual", Encode.string actual )
+            , ( "extra", Encode.list Encode.string extra )
+            , ( "missing", Encode.list Encode.string missing )
+            ]
+                |> Encode.object
+                |> encodeReasonType "CollectionDiff"
