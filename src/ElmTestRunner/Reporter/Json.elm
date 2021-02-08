@@ -50,11 +50,19 @@ onResult result =
                     }
 
                 Failed { labels, duration, todos, failures } ->
-                    { status = "fail"
-                    , testLabels = Encode.encode 0 (Encode.list Encode.string (List.reverse labels))
-                    , testFailures = Encode.encode 0 (Encode.list Failure.encode failures)
-                    , testDuration = duration
-                    }
+                    if not (List.isEmpty todos) then
+                        { status = "todo"
+                        , testLabels = Encode.encode 0 (Encode.list Encode.string (List.reverse labels))
+                        , testFailures = Encode.encode 0 (Encode.list Encode.string todos)
+                        , testDuration = duration
+                        }
+
+                    else
+                        { status = "fail"
+                        , testLabels = Encode.encode 0 (Encode.list Encode.string (List.reverse labels))
+                        , testFailures = Encode.encode 0 (Encode.list Failure.encode failures)
+                        , testDuration = duration
+                        }
     in
     """{"event":"testCompleted","status":"{{ status }}","labels":{{ labels }},"failures":{{ failures }},"duration":"{{ duration }}"}
 """
