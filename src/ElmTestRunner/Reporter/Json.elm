@@ -18,7 +18,7 @@ import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 {-| Provide a Json implementation of a reporter, mostly for automated tools.
 Require the initial random seed and number of fuzz runs.
 -}
-implementation : { seed : Int, fuzzRuns : Int } -> Interface
+implementation : { seed : Int, fuzzRuns : Int, globs : List String, paths : List String } -> Interface
 implementation options =
     { onBegin = onBegin options
     , onResult = onResult
@@ -26,15 +26,15 @@ implementation options =
     }
 
 
-onBegin : { seed : Int, fuzzRuns : Int } -> Int -> Maybe String
-onBegin { seed, fuzzRuns } testsCount =
-    """{"event":"runStart","testCount":"{{ testsCount }}","initialSeed":"{{ seed }}","fuzzRuns":"{{ fuzzRuns }}","globs":[{{ globs }}],"paths":[{{ paths }}]}
+onBegin : { seed : Int, fuzzRuns : Int, globs : List String, paths : List String } -> Int -> Maybe String
+onBegin { seed, fuzzRuns, globs, paths } testsCount =
+    """{"event":"runStart","testCount":"{{ testsCount }}","initialSeed":"{{ seed }}","fuzzRuns":"{{ fuzzRuns }}","globs":{{ globs }},"paths":{{ paths }}}
 """
         |> String.replace "{{ testsCount }}" (String.fromInt testsCount)
         |> String.replace "{{ seed }}" (String.fromInt seed)
         |> String.replace "{{ fuzzRuns }}" (String.fromInt fuzzRuns)
-        |> String.replace "{{ globs }}" ""
-        |> String.replace "{{ paths }}" ""
+        |> String.replace "{{ globs }}" (Encode.encode 0 <| Encode.list Encode.string globs)
+        |> String.replace "{{ paths }}" (Encode.encode 0 <| Encode.list Encode.string paths)
         |> Just
 
 

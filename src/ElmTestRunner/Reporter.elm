@@ -152,7 +152,7 @@ chooseReporter : Flags -> Interface
 chooseReporter { initialSeed, fuzzRuns, mode, globs, paths } =
     case mode of
         "json" ->
-            ReporterJson.implementation { seed = initialSeed, fuzzRuns = fuzzRuns }
+            ReporterJson.implementation { seed = initialSeed, fuzzRuns = fuzzRuns, globs = globs, paths = paths }
 
         "junit" ->
             ReporterJunit.implementation
