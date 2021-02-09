@@ -21,8 +21,8 @@ has to be logged by the reporter.
     onResult : TestResult -> Maybe String
     onResult testResult = ...
 
-    onEnd : Array TestResult -> Maybe String
-    onEnd allTestResults = ...
+    onEnd : Result String Kind -> Array TestResult -> Maybe String
+    onEnd kindResult allTestResults = ...
 
 -}
 type alias Interface =

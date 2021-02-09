@@ -34,14 +34,13 @@ implementation useColor options =
 onBegin : { seed : Int, fuzzRuns : Int } -> Int -> Maybe Text
 onBegin { seed, fuzzRuns } testsCount =
     """
-Running {{ testsCount }} tests. To reproduce these results later, run:
-elm-test-rs --seed {{ seed }} --fuzz {{ fuzzRuns }} {{ files }}
+Running {{ testsCount }} tests. To reproduce these results later,
+run elm-test-rs with --seed {{ seed }} and --fuzz {{ fuzzRuns }}
 
 """
         |> String.replace "{{ testsCount }}" (String.fromInt testsCount)
         |> String.replace "{{ seed }}" (String.fromInt seed)
         |> String.replace "{{ fuzzRuns }}" (String.fromInt fuzzRuns)
-        |> String.replace "{{ files }}" "(TODO: pass files to reporter)"
         |> plain
         |> Just
 
