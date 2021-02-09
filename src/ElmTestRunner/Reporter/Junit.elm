@@ -15,9 +15,8 @@ import ElmTestRunner.Failure exposing (Failure)
 import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Result as TestResult exposing (TestResult)
 import ElmTestRunner.SeededRunners exposing (Kind(..))
+import ElmTestRunner.Vendor.XmlEncode as Encode exposing (Value)
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
-import Xml
-import Xml.Encode as Encode
 
 
 {-| Provide a Junit XML implementation of a reporter, mostly for automated tools.
@@ -100,7 +99,7 @@ summary kind results =
 {-| See spec for "testcase" here:
 <https://github.com/windyroad/JUnit-Schema/blob/master/JUnit.xsd>
 -}
-encodeTestResult : TestResult -> Xml.Value
+encodeTestResult : TestResult -> Encode.Value
 encodeTestResult result =
     let
         { labels, duration, failures, logs } =
@@ -158,7 +157,7 @@ classAndName labels =
 {-| See spec for "failure" here:
 <https://github.com/windyroad/JUnit-Schema/blob/master/JUnit.xsd>
 -}
-encodeFailures : List Failure -> List String -> Xml.Value
+encodeFailures : List Failure -> List String -> Encode.Value
 encodeFailures failures todos =
     let
         message =
