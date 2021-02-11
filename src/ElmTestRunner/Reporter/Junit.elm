@@ -162,7 +162,7 @@ encodeFailures failures todos =
     let
         message =
             if not (List.isEmpty failures) then
-                List.map formatFailure (Debug.log "failures" failures)
+                List.map formatFailure failures
                     |> String.join "\n\n\n"
 
             else
