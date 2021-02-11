@@ -33,7 +33,7 @@ onBegin { seed, fuzzRuns, globs, paths } testsCount =
             Encode.object
                 [ ( "event", Encode.string "runStart" )
                 , ( "testCount", Encode.string (String.fromInt testsCount) )
-                , ( "seed", Encode.string (String.fromInt seed) )
+                , ( "initialSeed", Encode.string (String.fromInt seed) )
                 , ( "fuzzRuns", Encode.string (String.fromInt fuzzRuns) )
                 , ( "globs", Encode.list Encode.string globs )
                 , ( "paths", Encode.list Encode.string paths )
