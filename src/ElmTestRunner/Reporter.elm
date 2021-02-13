@@ -243,7 +243,7 @@ errorCode kindResult testResults =
         { failedCount, todoCount } =
             TestResult.summary testResults
     in
-    if Array.isEmpty (Debug.log "testsResults" testResults) then
+    if Array.isEmpty testResults then
         2
 
     else if kindResult == Ok SeededRunners.Plain && failedCount + todoCount == 0 then

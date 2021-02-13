@@ -150,8 +150,12 @@ onEnd kindResult testResults =
                 |> Just
 
         Ok kind ->
-            formatSummary kind (TestResult.summary testResults)
-                |> Just
+            if Array.isEmpty testResults then
+                Nothing
+
+            else
+                formatSummary kind (TestResult.summary testResults)
+                    |> Just
 
 
 formatSummary : Kind -> Summary -> Text
