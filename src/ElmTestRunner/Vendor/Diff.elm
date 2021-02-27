@@ -1,30 +1,4 @@
-module ElmTestRunner.Vendor.Diff exposing
-    ( Change(..)
-    , diff
-    )
-
-{-| Compares two list and returns how they have changed.
-Each function internally uses Wu's [O(NP) algorithm](http://myerslab.mpi-cbg.de/wp-content/uploads/2014/06/np_diff.pdf).
-
-
-# Types
-
-@docs Change
-
-
-# Diffing
-
-@docs diff, diffLines
-
--}
-
 -- NOTE: This is copy/pasted from https://github.com/jinjor/elm-diff
--- It's inlined to avoid having to call elm-package install on the end user's
--- system - the approach this library took prior to
--- commit 19047f01d460739bfe7f16466bc60b41430a8f09 - because it assumes
--- the end user has the correct elm-package on their PATH, which is not a
--- safe assumption.
---
 -- License:
 {-
    Copyright (c) 2016, Yosuke Torii
@@ -54,6 +28,27 @@ Each function internally uses Wu's [O(NP) algorithm](http://myerslab.mpi-cbg.de/
    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-}
+
+
+module ElmTestRunner.Vendor.Diff exposing
+    ( Change(..)
+    , diff
+    )
+
+{-| Compares two list and returns how they have changed.
+Each function internally uses Wu's [O(NP) algorithm](http://myerslab.mpi-cbg.de/wp-content/uploads/2014/06/np_diff.pdf).
+
+
+# Types
+
+@docs Change
+
+
+# Diffing
+
+@docs diff, diffLines
 
 -}
 

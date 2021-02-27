@@ -1,5 +1,6 @@
 -- Copied from rtfeldman/node-test-runner : elm/src/Console/Text.elm
 -- https://github.com/rtfeldman/node-test-runner/blob/master/elm/src/Console/Text.elm
+-- Published under BSD-3-Clause license, see LICENSE_node-test-runner
 
 
 module ElmTestRunner.Vendor.ConsoleText exposing

@@ -2,6 +2,7 @@
 -- https://github.com/billstclair/elm-xml-eeue56/blob/master/src/Xml.elm
 -- Original work is under BSD 3-Clause license by Noah (eeue56),
 -- with modifications from Bill St Clair, and Matthieu Pizenberg.
+-- See LICENSE_xml for the license.
 
 
 module ElmTestRunner.Vendor.XmlEncode exposing

@@ -1,5 +1,6 @@
 -- Copied from rtfeldman/node-test-runner : elm/src/Test/Reporter/Console/Format/Monochrome.elm
 -- https://github.com/rtfeldman/node-test-runner/blob/master/elm/src/Test/Reporter/Console/Format/Monochrome.elm
+-- Published under BSD-3-Clause license, see LICENSE_node-test-runner
 
 
 module ElmTestRunner.Vendor.FormatMonochrome exposing (formatEquality)

@@ -1,14 +1,4 @@
-module ElmTestRunner.Vendor.NodeConsole exposing (bgBlack, bgBlue, bgCyan, bgGreen, bgMagenta, bgRed, bgWhite, bgYellow, black, blue, bold, colorsInverted, cyan, dark, green, magenta, red, underline, white, yellow)
-
-{-| -}
-
 -- NOTE: This is copy/pasted from https://github.com/rtfeldman/console-print
--- It's inlined to avoid having to call elm-package install on the end user's
--- system - the approach this library took prior to
--- commit 19047f01d460739bfe7f16466bc60b41430a8f09 - because it assumes
--- the end user has the correct elm-package on their PATH, which is not a
--- safe assumption.
---
 -- License:
 {-
    BSD 3-Clause License
@@ -41,6 +31,11 @@ module ElmTestRunner.Vendor.NodeConsole exposing (bgBlack, bgBlue, bgCyan, bgGre
    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
+
+
+module ElmTestRunner.Vendor.NodeConsole exposing (bgBlack, bgBlue, bgCyan, bgGreen, bgMagenta, bgRed, bgWhite, bgYellow, black, blue, bold, colorsInverted, cyan, dark, green, magenta, red, underline, white, yellow)
+
+{-| -}
 
 
 {-| Make the text darker.
