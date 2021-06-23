@@ -3,7 +3,7 @@ module ElmTestRunner.Reporter.Exercism exposing (implementation)
 {-| Implementation of a reporter following the spec
 for exercism tests runners.
 
-<https://github.com/exercism/v3-docs/blob/master/anatomy/track-tooling/test-runners/interface.md>
+<https://github.com/exercism/docs/blob/main/building/tooling/test-runners/interface.md>
 
 @docs implementation
 
