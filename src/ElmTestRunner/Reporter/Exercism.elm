@@ -33,12 +33,13 @@ implementation =
 
 
 -- {
---   "version": 2,
+--   "version": 3,
 --   "status": "fail",
 --   "message": null,
 --   "tests": [
 --     {
 --       "name": "Test that the thing works",
+--       "task_id": 1,
 --       "status": "fail",
 --       "message": "Expected 42 but got 123123",
 --       "output": "Debugging information output by the user",
