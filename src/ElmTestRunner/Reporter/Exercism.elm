@@ -3,7 +3,7 @@ module ElmTestRunner.Reporter.Exercism exposing (implementation)
 {-| Implementation of a reporter following the spec
 for exercism tests runners.
 
-<https://github.com/exercism/v3-docs/blob/master/anatomy/track-tooling/test-runners/interface.md>
+<https://github.com/exercism/docs/blob/main/building/tooling/test-runners/interface.md>
 
 @docs implementation
 
@@ -33,12 +33,13 @@ implementation =
 
 
 -- {
---   "version": 2,
+--   "version": 3,
 --   "status": "fail",
 --   "message": null,
 --   "tests": [
 --     {
 --       "name": "Test that the thing works",
+--       "task_id": 1,
 --       "status": "fail",
 --       "message": "Expected 42 but got 123123",
 --       "output": "Debugging information output by the user",
@@ -54,7 +55,7 @@ summary kindOrErr results =
         Err err ->
             Encode.encode 2
                 (Encode.object
-                    [ ( "version", Encode.int 2 )
+                    [ ( "version", Encode.int 3 )
                     , ( "status", Encode.string "error" )
                     , ( "message", Encode.string err )
                     ]
@@ -70,7 +71,7 @@ summary kindOrErr results =
             in
             Encode.encode 2
                 (Encode.object
-                    [ ( "version", Encode.int 2 )
+                    [ ( "version", Encode.int 3 )
                     , ( "status", Encode.string status )
                     , ( "tests", Encode.array encodeExercismResult tests )
                     ]
@@ -89,6 +90,7 @@ summaryStatus kind { failedCount, todoCount } =
 
 type alias ExercismResult =
     { name : String
+    , taskId : Maybe Int
     , status : String
     , message : Maybe String
     , output : Maybe String
@@ -96,9 +98,10 @@ type alias ExercismResult =
 
 
 encodeExercismResult : ExercismResult -> Value
-encodeExercismResult { name, status, message, output } =
+encodeExercismResult { name, taskId, status, message, output } =
     Encode.object
         [ ( "name", Encode.string name )
+        , ( "task_id", Maybe.withDefault Encode.null (Maybe.map Encode.int taskId) )
         , ( "status", Encode.string status )
         , ( "message", Maybe.withDefault Encode.null (Maybe.map Encode.string message) )
         , ( "output", Maybe.withDefault Encode.null (Maybe.map Encode.string output) )
@@ -110,14 +113,16 @@ toExercismResult : TestResult -> ExercismResult
 toExercismResult testResult =
     case testResult of
         TestResult.Passed { labels } ->
-            { name = String.join " > " (List.reverse labels)
+            { name = extractTestName labels
+            , taskId = extractTaskId labels
             , status = "pass"
             , message = Nothing
             , output = Nothing
             }
 
         TestResult.Failed { labels, failures, todos, logs } ->
-            { name = String.join " > " (List.reverse labels)
+            { name = extractTestName labels
+            , taskId = extractTaskId labels
             , status = "fail"
             , message = Just (failureMessage failures todos)
             , output =
@@ -128,6 +133,22 @@ toExercismResult testResult =
                     _ ->
                         Just (String.join "\n" logs)
             }
+
+
+{-| Use the description level closest to the test as the test name.
+-}
+extractTestName : List String -> String
+extractTestName labels =
+    Maybe.withDefault "" (List.head labels)
+
+
+{-| Extract the task id as one of the description levels
+containing a single number identifying the task id.
+-}
+extractTaskId : List String -> Maybe Int
+extractTaskId labels =
+    List.filterMap String.toInt labels
+        |> List.head
 
 
 failureMessage : List Failure -> List String -> String
