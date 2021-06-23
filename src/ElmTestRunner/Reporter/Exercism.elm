@@ -55,7 +55,7 @@ summary kindOrErr results =
         Err err ->
             Encode.encode 2
                 (Encode.object
-                    [ ( "version", Encode.int 2 )
+                    [ ( "version", Encode.int 3 )
                     , ( "status", Encode.string "error" )
                     , ( "message", Encode.string err )
                     ]
@@ -71,7 +71,7 @@ summary kindOrErr results =
             in
             Encode.encode 2
                 (Encode.object
-                    [ ( "version", Encode.int 2 )
+                    [ ( "version", Encode.int 3 )
                     , ( "status", Encode.string status )
                     , ( "tests", Encode.array encodeExercismResult tests )
                     ]
