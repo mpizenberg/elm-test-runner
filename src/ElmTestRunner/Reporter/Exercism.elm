@@ -90,6 +90,7 @@ summaryStatus kind { failedCount, todoCount } =
 
 type alias ExercismResult =
     { name : String
+    , taskId : Maybe Int
     , status : String
     , message : Maybe String
     , output : Maybe String
@@ -97,9 +98,10 @@ type alias ExercismResult =
 
 
 encodeExercismResult : ExercismResult -> Value
-encodeExercismResult { name, status, message, output } =
+encodeExercismResult { name, taskId, status, message, output } =
     Encode.object
         [ ( "name", Encode.string name )
+        , ( "task_id", Maybe.withDefault Encode.null (Maybe.map Encode.int taskId) )
         , ( "status", Encode.string status )
         , ( "message", Maybe.withDefault Encode.null (Maybe.map Encode.string message) )
         , ( "output", Maybe.withDefault Encode.null (Maybe.map Encode.string output) )
@@ -111,14 +113,16 @@ toExercismResult : TestResult -> ExercismResult
 toExercismResult testResult =
     case testResult of
         TestResult.Passed { labels } ->
-            { name = String.join " > " (List.reverse labels)
+            { name = extractTestName labels
+            , taskId = extractTaskId labels
             , status = "pass"
             , message = Nothing
             , output = Nothing
             }
 
         TestResult.Failed { labels, failures, todos, logs } ->
-            { name = String.join " > " (List.reverse labels)
+            { name = extractTestName labels
+            , taskId = extractTaskId labels
             , status = "fail"
             , message = Just (failureMessage failures todos)
             , output =
@@ -129,6 +133,22 @@ toExercismResult testResult =
                     _ ->
                         Just (String.join "\n" logs)
             }
+
+
+{-| Use the description level closest to the test as the test name.
+-}
+extractTestName : List String -> String
+extractTestName labels =
+    Maybe.withDefault "" (List.head labels)
+
+
+{-| Extract the task id as one of the description levels
+containing a single number identifying the task id.
+-}
+extractTaskId : List String -> Maybe Int
+extractTaskId labels =
+    List.filterMap String.toInt labels
+        |> List.head
 
 
 failureMessage : List Failure -> List String -> String
