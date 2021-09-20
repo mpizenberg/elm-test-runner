@@ -72,7 +72,7 @@ onResult result =
     Just <|
         (Encode.encode 0 <|
             Encode.object
-                [ ( "event", Encode.string "testsCompleted" )
+                [ ( "event", Encode.string "testCompleted" )
                 , ( "status", Encode.string status )
                 , ( "labels", Encode.list Encode.string testLabels )
                 , ( "failures", testFailures )
