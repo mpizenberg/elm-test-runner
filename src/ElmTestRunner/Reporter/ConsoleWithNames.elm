@@ -7,12 +7,13 @@ module ElmTestRunner.Reporter.ConsoleWithNames exposing (implementation)
 -}
 
 import Array exposing (Array)
+import Dict exposing (Dict)
 import ElmTestRunner.Failure exposing (Failure)
 import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Result as TestResult exposing (Summary, TestResult(..))
 import ElmTestRunner.SeededRunners exposing (Kind(..))
 import ElmTestRunner.Vendor.ConsoleFormat exposing (format)
-import ElmTestRunner.Vendor.ConsoleText as Text exposing (Text, UseColor, dark, green, plain, red, underline, yellow)
+import ElmTestRunner.Vendor.ConsoleText as Text exposing (Text, UseColor, concat, dark, green, plain, red, underline, yellow)
 import ElmTestRunner.Vendor.FormatColor as FormatColor
 import ElmTestRunner.Vendor.FormatMonochrome as FormatMonochrome
 import Test.Runner exposing (formatLabels)
@@ -24,8 +25,8 @@ Require the initial random seed and number of fuzz runs.
 implementation : UseColor -> { seed : Int, fuzzRuns : Int } -> Interface
 implementation useColor options =
     { onBegin = onBegin options >> Maybe.map (Text.render useColor)
-    , onResult = onResult useColor >> Maybe.map (Text.render useColor)
-    , onEnd = \kindResult testResults -> Maybe.map (Text.render useColor) (onEnd kindResult testResults)
+    , onResult = \_ -> Nothing
+    , onEnd = \kindResult testResults -> Maybe.map (Text.render useColor) (onEnd useColor kindResult testResults)
     }
 
 
@@ -49,32 +50,20 @@ run elm-test-rs with --seed {{ seed }} and --fuzz {{ fuzzRuns }}
 --
 
 
-{-| Text output when receiving a test result.
--}
-onResult : UseColor -> TestResult -> Maybe Text
-onResult useColor testResult =
-    case testResult of
-        Passed { labels } ->
-            labels
-                |> successLabelsToText
-                |> Just
+displayFailure : UseColor -> List String -> List String -> List Failure -> List String -> Text
+displayFailure useColor labels todos failures logs =
+    if List.isEmpty todos then
+        -- We have non-TODOs still failing; report them, not the TODOs.
+        List.concat
+            [ List.map (failureToText useColor) failures
+            , [ logsToText logs ]
+            ]
+            |> Text.concat
 
-        Failed { labels, todos, failures, logs } ->
-            if List.isEmpty todos then
-                -- We have non-TODOs still failing; report them, not the TODOs.
-                List.concat
-                    [ [ failureLabelsToText labels ]
-                    , List.map (failureToText useColor) failures
-                    , [ logsToText logs ]
-                    ]
-                    |> Text.concat
-                    |> Just
-
-            else
-                List.map (\todo -> formatTodo labels todo ++ "\n") todos
-                    |> String.concat
-                    |> plain
-                    |> Just
+    else
+        List.map (\todo -> formatTodo labels todo ++ "\n") todos
+            |> String.concat
+            |> plain
 
 
 formatTodo : List String -> String -> String
@@ -144,8 +133,8 @@ logsToText logs =
 
 {-| Text output when finishing running the tests.
 -}
-onEnd : Result String Kind -> Array TestResult -> Maybe Text
-onEnd kindResult testResults =
+onEnd : UseColor -> Result String Kind -> Array TestResult -> Maybe Text
+onEnd useColor kindResult testResults =
     case kindResult of
         Err err ->
             plain ("Your tests are invalid: " ++ err ++ "\n")
@@ -157,74 +146,144 @@ onEnd kindResult testResults =
 
             else
                 formatSummary kind (TestResult.summary testResults)
-                    -- |> detailedReport testResults
+                    |> detailedReport useColor testResults
                     |> Just
 
 
-
--- formatTestResult _ =
---     plain "Test"
---
---
--- detailedReport : Array TestResult -> Text -> Text
--- detailedReport testResults summary =
---     testResults
---         |> Array.map formatTestResult
---         |> Array.toList
---         |> (::) summary
---         |> concat
+detailedReport : UseColor -> Array TestResult -> Text -> Text
+detailedReport useColor testResults summary =
+    [ testResults
+        |> displayResults useColor
+    , plain "\n\n"
+    , summary
+    ]
+        |> concat
 
 
-successLabelsToText : List String -> Text
-successLabelsToText labels =
-    Text.concat <|
-        case List.filter (not << String.isEmpty) labels of
-            [] ->
-                []
-
-            test :: descriptions ->
-                descriptions
-                    |> List.indexedMap
-                        (\index description ->
-                            description
-                                |> withChar '↓'
-                                |> prepend (List.length descriptions - index - 1) ' '
-                                |> plain
-                                |> dark
-                        )
-                    |> (::)
-                        (test
-                            |> withChar '✓'
-                            |> prepend (List.length descriptions) ' '
-                            |> (\s -> s ++ "\n")
-                            |> green
-                        )
-                    |> List.reverse
+displayResults : UseColor -> Array TestResult -> Text
+displayResults useColor testResults =
+    testResults
+        |> Array.map toLabels
+        |> Array.foldl toDict Dict.empty
+        |> viewDictItems useColor 0
+        |> List.intersperse (plain "\n")
+        |> concat
 
 
-
--- test :: descriptions ->
---     descriptions
---         |> List.indexedMap
---             (\index description ->
---                 description
---                     |> prepend (List.length descriptions - index - 1) ' '
---                     |> formatDescription
---             )
---         |> (::)
---             (test
---                 |> prepend (List.length descriptions) ' '
---                 |> formatTest
---             )
---         |> List.reverse
+type TestStatus
+    = TestOK
+    | TestNOK { labels : List String, logs : List String, todos : List String, failures : List Failure, duration : Float }
 
 
+type DictItem
+    = Status TestStatus
+    | D (Dict String DictItem)
+
+
+toLabels : TestResult -> ( TestStatus, List String )
+toLabels testResult =
+    case testResult of
+        Passed { labels } ->
+            ( TestOK
+            , labels
+                |> List.reverse
+            )
+
+        Failed data ->
+            ( TestNOK data
+            , data.labels
+                |> List.reverse
+            )
+
+
+toDict : ( TestStatus, List String ) -> Dict String DictItem -> Dict String DictItem
+toDict ( status, labels ) dict =
+    case labels of
+        [] ->
+            dict
+
+        test :: [] ->
+            Dict.insert test (Status status) dict
+
+        step :: rest ->
+            Dict.update step
+                (\maybeD ->
+                    case maybeD of
+                        Nothing ->
+                            Just <|
+                                D <|
+                                    toDict ( status, rest ) <|
+                                        Dict.empty
+
+                        Just (Status _) ->
+                            Nothing
+
+                        Just (D d) ->
+                            Just <|
+                                D <|
+                                    toDict ( status, rest ) <|
+                                        d
+                )
+                dict
+
+
+viewDictItems : UseColor -> Int -> Dict String DictItem -> List Text
+viewDictItems useColor spaces dict =
+    dict
+        |> Dict.foldl
+            (\label d arr ->
+                let
+                    ( prefix, color ) =
+                        case d of
+                            Status TestOK ->
+                                ( "✓ ", green )
+
+                            Status (TestNOK _) ->
+                                ( "✗ ", red )
+
+                            D _ ->
+                                ( "↓ ", plain )
+                in
+                ([ ""
+                    ++ String.fromList (List.repeat spaces ' ')
+                    ++ prefix
+                    ++ label
+                    ++ " "
+                    |> color
+                 , case d of
+                    Status status ->
+                        case status of
+                            TestOK ->
+                                green "→ PASSED"
+
+                            TestNOK _ ->
+                                red "→ FAILED"
+
+                    D di ->
+                        viewDictItems useColor (spaces + 2) di
+                            |> (::) (plain "\n")
+                            |> concat
+                 , case d of
+                    Status (TestNOK { labels, todos, failures, logs }) ->
+                        [ plain "\n"
+                        , displayFailure useColor labels todos failures logs
+                        ]
+                            |> concat
+
+                    _ ->
+                        plain ""
+                 ]
+                    |> concat
+                )
+                    :: arr
+            )
+            []
+        |> List.intersperse (plain "\n")
+
+
+repeatString : Int -> Char -> String
 repeatString size char =
     String.fromList (List.repeat size char)
-
-
-prepend size char =
-    (++) (repeatString size char)
 
 
 formatSummary : Kind -> Summary -> Text
