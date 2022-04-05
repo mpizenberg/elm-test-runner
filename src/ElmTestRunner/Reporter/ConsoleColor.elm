@@ -21,17 +21,17 @@ import Test.Runner exposing (formatLabels)
 {-| Provide a console implementation of a reporter, mostly for human consumption.
 Require the initial random seed and number of fuzz runs.
 -}
-implementation : UseColor -> { seed : Int, fuzzRuns : Int } -> Interface
+implementation : UseColor -> { seed : Int, fuzzRuns : Int, verbosity : Int } -> Interface
 implementation useColor options =
     { onBegin = onBegin options >> Maybe.map (Text.render useColor)
     , onResult = onResult useColor >> Maybe.map (Text.render useColor)
-    , onEnd = \kindResult testResults -> Maybe.map (Text.render useColor) (onEnd kindResult testResults)
+    , onEnd = \kindResult testResults -> Maybe.map (Text.render useColor) (onEnd options.verbosity kindResult testResults)
     }
 
 
 {-| Text output when starting the test runners.
 -}
-onBegin : { seed : Int, fuzzRuns : Int } -> Int -> Maybe Text
+onBegin : { seed : Int, fuzzRuns : Int, verbosity : Int } -> Int -> Maybe Text
 onBegin { seed, fuzzRuns } testsCount =
     """
 Running {{ testsCount }} tests. To reproduce these results later,
@@ -142,8 +142,8 @@ logsToText logs =
 
 {-| Text output when finishing running the tests.
 -}
-onEnd : Result String Kind -> Array TestResult -> Maybe Text
-onEnd kindResult testResults =
+onEnd : Int -> Result String Kind -> Array TestResult -> Maybe Text
+onEnd verbosityLevel kindResult testResults =
     case kindResult of
         Err err ->
             plain ("Your tests are invalid: " ++ err ++ "\n")
@@ -153,9 +153,17 @@ onEnd kindResult testResults =
             if Array.isEmpty testResults then
                 Nothing
 
+            else if verbosityLevel <= 0 then
+                Just (formatSummary kind (TestResult.summary testResults))
+
             else
-                formatSummary kind (TestResult.summary testResults)
-                    |> Just
+                Just
+                    (Text.concat
+                        [ Text.plain "Tests listing:\n\n"
+                        , Text.plain "The listing\n\n"
+                        , formatSummary kind (TestResult.summary testResults)
+                        ]
+                    )
 
 
 formatSummary : Kind -> Summary -> Text

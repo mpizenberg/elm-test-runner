@@ -120,6 +120,7 @@ type alias Flags =
     { initialSeed : Int
     , fuzzRuns : Int
     , mode : String
+    , verbosity : Int
     , globs : List String
     , paths : List String
     }
@@ -150,7 +151,7 @@ type Msg
 
 
 chooseReporter : Flags -> Interface
-chooseReporter { initialSeed, fuzzRuns, mode, globs, paths } =
+chooseReporter { initialSeed, fuzzRuns, mode, verbosity, globs, paths } =
     case mode of
         "json" ->
             ReporterJson.implementation { seed = initialSeed, fuzzRuns = fuzzRuns, globs = globs, paths = paths }
@@ -162,10 +163,10 @@ chooseReporter { initialSeed, fuzzRuns, mode, globs, paths } =
             ReporterExercism.implementation
 
         "consoleColor" ->
-            ReporterConsoleColor.implementation Text.UseColor { seed = initialSeed, fuzzRuns = fuzzRuns }
+            ReporterConsoleColor.implementation Text.UseColor { seed = initialSeed, fuzzRuns = fuzzRuns, verbosity = verbosity }
 
         "consoleNoColor" ->
-            ReporterConsoleColor.implementation Text.Monochrome { seed = initialSeed, fuzzRuns = fuzzRuns }
+            ReporterConsoleColor.implementation Text.Monochrome { seed = initialSeed, fuzzRuns = fuzzRuns, verbosity = verbosity }
 
         "consoleFull" ->
             ReporterConsoleWithNames.implementation Text.UseColor { seed = initialSeed, fuzzRuns = fuzzRuns }
