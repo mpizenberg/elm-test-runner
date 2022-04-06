@@ -7,6 +7,7 @@ module ElmTestRunner.Reporter.ConsoleColor exposing (implementation)
 -}
 
 import Array exposing (Array)
+import Dict exposing (Dict)
 import ElmTestRunner.Failure exposing (Failure)
 import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Result as TestResult exposing (Summary, TestResult(..))
@@ -160,10 +161,134 @@ onEnd verbosityLevel kindResult testResults =
                 Just
                     (Text.concat
                         [ Text.plain "Tests listing:\n\n"
-                        , Text.plain "The listing\n\n"
+                        , formatTestListing testResults
                         , formatSummary kind (TestResult.summary testResults)
                         ]
                     )
+
+
+
+-- Format the test listing #####################################################
+
+
+{-| Data structure to gather all tests results in a tree,
+to be able to report visually pleasing listing of all tests.
+-}
+type TestListingTree
+    = TestListingTree
+        { tests : List { passed : Bool, label : String }
+        , groups : Dict String TestListingTree
+        }
+
+
+type Either a b
+    = Left a
+    | Right b
+
+
+{-| Format a listing of all tests, assuming their order makes some sense, so keeping it.
+-}
+formatTestListing : Array TestResult -> Text
+formatTestListing testResults =
+    let
+        accumListingLine : Int -> Either { passed : Bool, label : String } String -> List Text -> List Text
+        accumListingLine indentationLevel testLine accumText =
+            formatListingLine indentationLevel testLine :: accumText
+    in
+    listingTraversal accumListingLine 0 (toListingTree testResults) []
+        |> List.reverse
+        |> Text.concat
+
+
+{-| Apply an accumulation function while traversing the test listing.
+The traversal starts by all tests of a given level, followed by groups of that level.
+While traversing a group, it first encounters the group name, followed by its subtree of tests.
+-}
+listingTraversal : (Int -> Either { passed : Bool, label : String } String -> acc -> acc) -> Int -> TestListingTree -> acc -> acc
+listingTraversal f initialLevel (TestListingTree { tests, groups }) acc =
+    let
+        oneGroupTraversal : ( String, TestListingTree ) -> acc -> acc
+        oneGroupTraversal ( group, subTree ) subAcc =
+            f initialLevel (Right group) subAcc
+                |> listingTraversal f (initialLevel + 1) subTree
+
+        groupsTraversal : acc -> acc
+        groupsTraversal groupsAcc =
+            List.foldl oneGroupTraversal groupsAcc (Dict.toList groups)
+    in
+    -- Tests traversal
+    List.foldl (\test -> f initialLevel (Left test)) acc tests
+        -- Then groups traversal
+        |> groupsTraversal
+
+
+{-| Format one line in the test listing.
+That line may be a test result line or the name of a group of tests.
+-}
+formatListingLine : Int -> Either { passed : Bool, label : String } String -> Text
+formatListingLine indentationLevel testLine =
+    case testLine of
+        Left { passed, label } ->
+            if passed then
+                Text.plain (String.concat [ String.repeat indentationLevel "  ", "✓ PASSED: ", label, "\n" ])
+
+            else
+                Text.red (String.concat [ String.repeat indentationLevel "  ", "✗ FAILED: ", label, "\n" ])
+
+        Right groupName ->
+            Text.plain (String.concat [ String.repeat indentationLevel "  ", "↓ ", groupName, "\n" ])
+
+
+{-| Convert the array of test results into a listing tree.
+-}
+toListingTree : Array TestResult -> TestListingTree
+toListingTree testResults =
+    Array.foldr (statusAndLabels >> insertTestInListing) emptyListingTree testResults
+
+
+statusAndLabels : TestResult -> { passed : Bool, labels : List String }
+statusAndLabels testResult =
+    case testResult of
+        TestResult.Failed { labels } ->
+            { passed = False, labels = List.reverse labels }
+
+        TestResult.Passed { labels } ->
+            { passed = True, labels = List.reverse labels }
+
+
+insertTestInListing : { passed : Bool, labels : List String } -> TestListingTree -> TestListingTree
+insertTestInListing { passed, labels } (TestListingTree { tests, groups }) =
+    case labels of
+        -- Should not happen
+        [] ->
+            emptyListingTree
+
+        label :: [] ->
+            TestListingTree
+                { tests = { passed = passed, label = label } :: tests
+                , groups = groups
+                }
+
+        groupLabel :: subLabels ->
+            TestListingTree
+                { tests = tests
+                , groups =
+                    let
+                        subTree =
+                            Dict.get groupLabel groups
+                                |> Maybe.withDefault emptyListingTree
+                    in
+                    Dict.insert groupLabel (insertTestInListing { passed = passed, labels = subLabels } subTree) groups
+                }
+
+
+emptyListingTree : TestListingTree
+emptyListingTree =
+    TestListingTree { tests = [], groups = Dict.empty }
+
+
+
+-- Format the summary ##########################################################
 
 
 formatSummary : Kind -> Summary -> Text

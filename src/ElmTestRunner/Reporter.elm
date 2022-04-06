@@ -20,7 +20,6 @@ module ElmTestRunner.Reporter exposing
 import Array exposing (Array)
 import ElmTestRunner.Reporter.ConsoleColor as ReporterConsoleColor
 import ElmTestRunner.Reporter.ConsoleDebug as ReporterConsoleDebug
-import ElmTestRunner.Reporter.ConsoleWithNames as ReporterConsoleWithNames
 import ElmTestRunner.Reporter.Exercism as ReporterExercism
 import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Reporter.Json as ReporterJson
@@ -167,9 +166,6 @@ chooseReporter { initialSeed, fuzzRuns, mode, verbosity, globs, paths } =
 
         "consoleNoColor" ->
             ReporterConsoleColor.implementation Text.Monochrome { seed = initialSeed, fuzzRuns = fuzzRuns, verbosity = verbosity }
-
-        "consoleFull" ->
-            ReporterConsoleWithNames.implementation Text.UseColor { seed = initialSeed, fuzzRuns = fuzzRuns }
 
         _ ->
             ReporterConsoleDebug.implementation { seed = initialSeed, fuzzRuns = fuzzRuns }
