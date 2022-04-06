@@ -135,7 +135,7 @@ toExercismResult testResult =
             }
 
 
-{-| Use the description level closest to the test as the test name.
+{-| Use all description levels, except the first one (exercise name), to build the test name.
 -}
 extractTestName : List String -> String
 extractTestName labels =
