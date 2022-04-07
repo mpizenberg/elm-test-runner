@@ -38,7 +38,7 @@ implementation =
 --   "message": null,
 --   "tests": [
 --     {
---       "name": "Test that the thing works",
+--       "name": "1 > Test that the thing works",
 --       "task_id": 1,
 --       "status": "fail",
 --       "message": "Expected 42 but got 123123",
@@ -135,11 +135,13 @@ toExercismResult testResult =
             }
 
 
-{-| Use the description level closest to the test as the test name.
+{-| Use all description levels, except the first one (exercise name), to build the test name.
 -}
 extractTestName : List String -> String
 extractTestName labels =
-    Maybe.withDefault "" (List.head labels)
+    List.reverse labels
+        |> List.drop 1
+        |> String.join " > "
 
 
 {-| Extract the task id as one of the description levels
