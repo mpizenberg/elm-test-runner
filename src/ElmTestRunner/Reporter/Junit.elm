@@ -16,6 +16,7 @@ import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Result as TestResult exposing (TestResult)
 import ElmTestRunner.SeededRunners exposing (Kind(..))
 import ElmTestRunner.Vendor.XmlEncode as Encode exposing (Value)
+import Test.Coverage exposing (CoverageReport)
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
@@ -154,30 +155,65 @@ classAndName labels =
             ( String.join " > " (List.reverse classLabels), name )
 
 
+coverageReportToString : CoverageReport -> Maybe String
+coverageReportToString coverageReport =
+    case coverageReport of
+        Test.Coverage.NoCoverage ->
+            Nothing
+
+        Test.Coverage.CoverageToReport r ->
+            Just (Test.Coverage.coverageReportTable r)
+
+        Test.Coverage.CoverageCheckSucceeded _ ->
+            {- Not reporting the table to the JUnit stdout (similarly to the
+               Console reporter) although the data is technically there.
+               We keep the full data dump for the JSON reporter.
+            -}
+            Nothing
+
+        Test.Coverage.CoverageCheckFailed _ ->
+            -- The table is included in the failure message already.
+            Nothing
+
+
 {-| See spec for "failure" here:
 <https://github.com/windyroad/JUnit-Schema/blob/master/JUnit.xsd>
 -}
-encodeFailures : List Failure -> List String -> Encode.Value
+encodeFailures : List ( Failure, CoverageReport ) -> List String -> Encode.Value
 encodeFailures failures todos =
     let
+        message : String
         message =
             if not (List.isEmpty failures) then
-                List.map formatFailure failures
+                List.map (Tuple.first >> formatFailure) failures
                     |> String.join "\n\n\n"
 
             else
                 List.map ((++) "TODO: ") todos
                     |> String.join "\n"
 
-        attributesDict =
-            Dict.fromList
-                -- The message specified in the assert.
-                [ ( "message", Encode.string message )
+        stdout : Maybe String
+        stdout =
+            case List.filterMap (Tuple.second >> coverageReportToString) failures of
+                [] ->
+                    Nothing
 
-                -- The type of the assert.
-                -- This is unknow for elm tests.
-                -- , ( "type", "required" )
-                ]
+                list ->
+                    Just (String.join "\n\n\n" list)
+
+        attributesDict =
+            [ -- The message specified in the assert.
+              Just ( "message", Encode.string message )
+
+            -- stdout - currently used for coverage reports
+            , stdout |> Maybe.map (\out -> ( "system-out", Encode.string out ))
+
+            -- The type of the assert.
+            -- This is unknown for Elm tests.
+            -- , ( "type", "required" )
+            ]
+                |> List.filterMap identity
+                |> Dict.fromList
     in
     Encode.object [ ( "failure", attributesDict, Encode.null ) ]
 

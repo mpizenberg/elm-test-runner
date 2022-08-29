@@ -19,6 +19,7 @@ import ElmTestRunner.Vendor.ConsoleText as Text exposing (Text, UseColor)
 import ElmTestRunner.Vendor.FormatColor as FormatColor
 import ElmTestRunner.Vendor.FormatMonochrome as FormatMonochrome
 import Json.Encode as Encode exposing (Value)
+import Test.Coverage exposing (CoverageReport)
 
 
 {-| Implementation of a reporter for exercism, mostly for automated tools.
@@ -109,14 +110,41 @@ encodeExercismResult { name, taskId, status, message, output } =
         ]
 
 
+coverageReportToString : CoverageReport -> Maybe String
+coverageReportToString coverageReport =
+    case coverageReport of
+        Test.Coverage.NoCoverage ->
+            Nothing
+
+        Test.Coverage.CoverageToReport r ->
+            Just (Test.Coverage.coverageReportTable r)
+
+        Test.Coverage.CoverageCheckSucceeded _ ->
+            {- Not reporting the table to the Exercism stdout (similarly to the
+               Console reporter) although the data is technically there.
+               We keep the full data dump for the JSON reporter.
+            -}
+            Nothing
+
+        Test.Coverage.CoverageCheckFailed _ ->
+            -- The table is included in the failure message already.
+            Nothing
+
+
 toExercismResult : TestResult -> ExercismResult
 toExercismResult testResult =
     case testResult of
-        TestResult.Passed { labels } ->
+        TestResult.Passed { labels, successes } ->
             { name = extractTestName labels
             , taskId = extractTaskId labels
             , status = "pass"
-            , message = Nothing
+            , message =
+                case List.filterMap coverageReportToString successes of
+                    [] ->
+                        Nothing
+
+                    tables ->
+                        Just <| String.join "\n\n\n" tables
             , output = Nothing
             }
 
@@ -153,7 +181,7 @@ extractTaskId labels =
         |> List.head
 
 
-failureMessage : List Failure -> List String -> String
+failureMessage : List ( Failure, CoverageReport ) -> List String -> String
 failureMessage failures todos =
     let
         useColor =
@@ -168,8 +196,8 @@ failureMessage failures todos =
         String.join "\n" todos
 
 
-failureToText : UseColor -> Failure -> Text
-failureToText useColor { given, description, reason } =
+failureToText : UseColor -> ( Failure, CoverageReport ) -> Text
+failureToText useColor ( { given, description, reason }, coverageReport ) =
     let
         formatEquality =
             case useColor of
@@ -182,15 +210,14 @@ failureToText useColor { given, description, reason } =
         messageText =
             Text.plain ("\n" ++ indent (format formatEquality description reason) ++ "\n\n")
     in
-    case given of
-        Nothing ->
-            messageText
-
-        Just givenStr ->
-            [ Text.dark (Text.plain ("\nGiven " ++ givenStr ++ "\n"))
-            , messageText
-            ]
-                |> Text.concat
+    [ coverageReport
+        |> coverageReportToString
+        |> Maybe.map (\str -> Text.dark (Text.plain str))
+    , given |> Maybe.map (\str -> Text.dark (Text.plain ("\nGiven " ++ str ++ "\n")))
+    , Just messageText
+    ]
+        |> List.filterMap identity
+        |> Text.concat
 
 
 indent : String -> String

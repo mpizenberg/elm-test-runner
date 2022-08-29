@@ -7,11 +7,13 @@ module ElmTestRunner.Reporter.Json exposing (implementation)
 -}
 
 import Array exposing (Array)
+import Dict exposing (Dict)
 import ElmTestRunner.Failure exposing (Failure)
 import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Result as TestResult exposing (TestResult(..))
 import ElmTestRunner.SeededRunners exposing (Kind(..))
 import Json.Encode as Encode
+import Test.Coverage exposing (CoverageReport)
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
@@ -115,13 +117,69 @@ onEnd kind results =
             ++ "\n"
 
 
-jsonEncodeFailure : Failure -> Encode.Value
-jsonEncodeFailure { given, description, reason } =
+jsonEncodeFailure : ( Failure, CoverageReport ) -> Encode.Value
+jsonEncodeFailure ( { given, description, reason }, coverageReport ) =
     Encode.object
         [ ( "given", Maybe.withDefault Encode.null (Maybe.map Encode.string given) )
         , ( "message", Encode.string description )
         , ( "reason", encodeReason description reason )
+        , ( "coverageReport", encodeCoverageReport coverageReport )
         ]
+
+
+encodeSumType : String -> Encode.Value -> Encode.Value
+encodeSumType sumType data =
+    Encode.object
+        [ ( "type", Encode.string sumType )
+        , ( "data", data )
+        ]
+
+
+encodeCoverageCount : Dict (List String) Int -> Encode.Value
+encodeCoverageCount dict =
+    dict
+        |> Dict.toList
+        |> Encode.list
+            (\( labels, count ) ->
+                Encode.object
+                    [ ( "labels", Encode.list Encode.string labels )
+                    , ( "count", Encode.int count )
+                    ]
+            )
+
+
+{-| For JSON, we report all the coverage we can - the maximum possible amount of information.
+-}
+encodeCoverageReport : CoverageReport -> Encode.Value
+encodeCoverageReport coverageReport =
+    case coverageReport of
+        Test.Coverage.NoCoverage ->
+            Encode.null
+                |> encodeSumType "NoCoverage"
+
+        Test.Coverage.CoverageToReport r ->
+            [ ( "coverageCount", encodeCoverageCount r.coverageCount )
+            , ( "runsElapsed", Encode.int r.runsElapsed )
+            ]
+                |> Encode.object
+                |> encodeSumType "CoverageToReport"
+
+        Test.Coverage.CoverageCheckSucceeded r ->
+            [ ( "coverageCount", encodeCoverageCount r.coverageCount )
+            , ( "runsElapsed", Encode.int r.runsElapsed )
+            ]
+                |> Encode.object
+                |> encodeSumType "CoverageCheckSucceeded"
+
+        Test.Coverage.CoverageCheckFailed r ->
+            [ ( "coverageCount", encodeCoverageCount r.coverageCount )
+            , ( "runsElapsed", Encode.int r.runsElapsed )
+            , ( "badLabel", Encode.string r.badLabel )
+            , ( "badLabelPercentage", Encode.float r.badLabelPercentage )
+            , ( "expectedCoverage", Encode.string r.expectedCoverage )
+            ]
+                |> Encode.object
+                |> encodeSumType "CoverageCheckFailed"
 
 
 encodeReasonType : String -> Encode.Value -> Encode.Value

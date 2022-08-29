@@ -11,6 +11,7 @@ import ElmTestRunner.Failure exposing (Failure)
 import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Result as TestResult exposing (Summary, TestResult(..))
 import ElmTestRunner.SeededRunners exposing (Kind(..))
+import Test.Coverage exposing (CoverageReport)
 
 
 {-| Provide a console implementation of a reporter, mostly for human consumption.
@@ -78,7 +79,7 @@ indent str =
         |> String.join "\n"
 
 
-displayFailureContent : List String -> List Failure -> List String -> String
+displayFailureContent : List String -> List ( Failure, CoverageReport ) -> List String -> String
 displayFailureContent todos failures logs =
     "with todos: {{ todos }}\nwith failures: {{ failures }}\nwith debug logs:\n\n{{ logs }}\n"
         |> String.replace "{{ todos }}" (Debug.toString todos)

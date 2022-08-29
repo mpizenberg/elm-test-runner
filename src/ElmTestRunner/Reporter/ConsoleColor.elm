@@ -16,6 +16,7 @@ import ElmTestRunner.Vendor.ConsoleFormat exposing (format)
 import ElmTestRunner.Vendor.ConsoleText as Text exposing (Text, UseColor, dark, green, plain, red, underline, yellow)
 import ElmTestRunner.Vendor.FormatColor as FormatColor
 import ElmTestRunner.Vendor.FormatMonochrome as FormatMonochrome
+import Test.Coverage exposing (CoverageReport)
 import Test.Runner exposing (formatLabels)
 
 
@@ -91,8 +92,29 @@ failureLabelsToText =
     formatLabels (dark << plain << withChar '↓') (red << withChar '✗') >> Text.concat
 
 
-failureToText : UseColor -> Failure -> Text
-failureToText useColor { given, description, reason } =
+coverageReportToString : CoverageReport -> Maybe String
+coverageReportToString coverageReport =
+    case coverageReport of
+        Test.Coverage.NoCoverage ->
+            Nothing
+
+        Test.Coverage.CoverageToReport r ->
+            Just (Test.Coverage.coverageReportTable r)
+
+        Test.Coverage.CoverageCheckSucceeded _ ->
+            {- Not reporting the table to the Console.Color stdout (similarly to
+               the Console reporter) although the data is technically there.
+               We keep the full data dump for the JSON reporter.
+            -}
+            Nothing
+
+        Test.Coverage.CoverageCheckFailed _ ->
+            -- The table is included in the failure message already.
+            Nothing
+
+
+failureToText : UseColor -> ( Failure, CoverageReport ) -> Text
+failureToText useColor ( { given, description, reason }, coverageReport ) =
     let
         formatEquality =
             case useColor of
@@ -105,15 +127,14 @@ failureToText useColor { given, description, reason } =
         messageText =
             plain ("\n" ++ indent (format formatEquality description reason) ++ "\n\n")
     in
-    case given of
-        Nothing ->
-            messageText
-
-        Just givenStr ->
-            [ dark (plain ("\nGiven " ++ givenStr ++ "\n"))
-            , messageText
-            ]
-                |> Text.concat
+    [ coverageReport
+        |> coverageReportToString
+        |> Maybe.map (\str -> dark (plain str))
+    , given |> Maybe.map (\str -> dark (plain ("\nGiven " ++ str ++ "\n")))
+    , Just messageText
+    ]
+        |> List.filterMap identity
+        |> Text.concat
 
 
 indent : String -> String

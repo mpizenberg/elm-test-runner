@@ -59,6 +59,12 @@ invalidReasonToString reason =
         DuplicatedName ->
             "DuplicatedName"
 
+        CoverageInsufficient ->
+            "CoverageInsufficient"
+
+        CoverageBug ->
+            "CoverageBug"
+
 
 
 -- Generated decoders and encoders thanks to (https://dkodaj.github.io/decgen/)
