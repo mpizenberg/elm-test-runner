@@ -224,51 +224,55 @@ decodeCoverageReport =
     Decode.field "type" Decode.string
         |> Decode.andThen
             (\type_ ->
-                case type_ of
-                    "NoCoverage" ->
-                        Decode.succeed Test.Coverage.NoCoverage
+                let
+                    innerDecoder =
+                        case type_ of
+                            "NoCoverage" ->
+                                Decode.succeed Test.Coverage.NoCoverage
 
-                    "CoverageToReport" ->
-                        Decode.map2
-                            (\coverageCount runsElapsed ->
-                                Test.Coverage.CoverageToReport
-                                    { coverageCount = coverageCount
-                                    , runsElapsed = runsElapsed
-                                    }
-                            )
-                            (Decode.field "coverageCount" decodeCoverageCount)
-                            (Decode.field "runsElapsed" Decode.int)
+                            "CoverageToReport" ->
+                                Decode.map2
+                                    (\coverageCount runsElapsed ->
+                                        Test.Coverage.CoverageToReport
+                                            { coverageCount = coverageCount
+                                            , runsElapsed = runsElapsed
+                                            }
+                                    )
+                                    (Decode.field "coverageCount" decodeCoverageCount)
+                                    (Decode.field "runsElapsed" Decode.int)
 
-                    "CoverageCheckSucceeded" ->
-                        Decode.map2
-                            (\coverageCount runsElapsed ->
-                                Test.Coverage.CoverageCheckSucceeded
-                                    { coverageCount = coverageCount
-                                    , runsElapsed = runsElapsed
-                                    }
-                            )
-                            (Decode.field "coverageCount" decodeCoverageCount)
-                            (Decode.field "runsElapsed" Decode.int)
+                            "CoverageCheckSucceeded" ->
+                                Decode.map2
+                                    (\coverageCount runsElapsed ->
+                                        Test.Coverage.CoverageCheckSucceeded
+                                            { coverageCount = coverageCount
+                                            , runsElapsed = runsElapsed
+                                            }
+                                    )
+                                    (Decode.field "coverageCount" decodeCoverageCount)
+                                    (Decode.field "runsElapsed" Decode.int)
 
-                    "CoverageCheckFailed" ->
-                        Decode.map5
-                            (\coverageCount runsElapsed badLabel badLabelPercentage expectedCoverage ->
-                                Test.Coverage.CoverageCheckFailed
-                                    { coverageCount = coverageCount
-                                    , runsElapsed = runsElapsed
-                                    , badLabel = badLabel
-                                    , badLabelPercentage = badLabelPercentage
-                                    , expectedCoverage = expectedCoverage
-                                    }
-                            )
-                            (Decode.field "coverageCount" decodeCoverageCount)
-                            (Decode.field "runsElapsed" Decode.int)
-                            (Decode.field "badLabel" Decode.string)
-                            (Decode.field "badLabelPercentage" Decode.float)
-                            (Decode.field "expectedCoverage" Decode.string)
+                            "CoverageCheckFailed" ->
+                                Decode.map5
+                                    (\coverageCount runsElapsed badLabel badLabelPercentage expectedCoverage ->
+                                        Test.Coverage.CoverageCheckFailed
+                                            { coverageCount = coverageCount
+                                            , runsElapsed = runsElapsed
+                                            , badLabel = badLabel
+                                            , badLabelPercentage = badLabelPercentage
+                                            , expectedCoverage = expectedCoverage
+                                            }
+                                    )
+                                    (Decode.field "coverageCount" decodeCoverageCount)
+                                    (Decode.field "runsElapsed" Decode.int)
+                                    (Decode.field "badLabel" Decode.string)
+                                    (Decode.field "badLabelPercentage" Decode.float)
+                                    (Decode.field "expectedCoverage" Decode.string)
 
-                    _ ->
-                        Decode.fail <| "Unknown CoverageReport type: " ++ type_
+                            _ ->
+                                Decode.fail <| "Unknown CoverageReport type: " ++ type_
+                in
+                Decode.field "data" innerDecoder
             )
 
 
