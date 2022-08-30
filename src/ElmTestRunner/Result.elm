@@ -23,7 +23,7 @@ import ElmTestRunner.Failure as Failure exposing (Failure)
 import Expect exposing (Expectation)
 import Json.Decode as Decode exposing (Decoder, Value)
 import Json.Encode as Encode
-import Test.Coverage exposing (CoverageReport)
+import Test.Coverage exposing (CoverageReport(..))
 import Test.Runner
 
 
@@ -35,7 +35,7 @@ type TestResult
         { labels : List String
         , duration : Float
         , logs : List String
-        , successes : List CoverageReport
+        , successes : List CoverageReport -- TODO change to success : CoverageReport
         }
     | Failed
         { labels : List String
@@ -209,128 +209,6 @@ encodeFailure =
     Failure.encode
 
 
-decodeCoverageCount : Decoder (Dict (List String) Int)
-decodeCoverageCount =
-    Decode.list
-        (Decode.map2 Tuple.pair
-            (Decode.field "labels" (Decode.list Decode.string))
-            (Decode.field "count" Decode.int)
-        )
-        |> Decode.map Dict.fromList
-
-
-decodeCoverageReport : Decoder CoverageReport
-decodeCoverageReport =
-    Decode.field "type" Decode.string
-        |> Decode.andThen
-            (\type_ ->
-                let
-                    innerDecoder =
-                        case type_ of
-                            "NoCoverage" ->
-                                Decode.succeed Test.Coverage.NoCoverage
-
-                            "CoverageToReport" ->
-                                Decode.map2
-                                    (\coverageCount runsElapsed ->
-                                        Test.Coverage.CoverageToReport
-                                            { coverageCount = coverageCount
-                                            , runsElapsed = runsElapsed
-                                            }
-                                    )
-                                    (Decode.field "coverageCount" decodeCoverageCount)
-                                    (Decode.field "runsElapsed" Decode.int)
-
-                            "CoverageCheckSucceeded" ->
-                                Decode.map2
-                                    (\coverageCount runsElapsed ->
-                                        Test.Coverage.CoverageCheckSucceeded
-                                            { coverageCount = coverageCount
-                                            , runsElapsed = runsElapsed
-                                            }
-                                    )
-                                    (Decode.field "coverageCount" decodeCoverageCount)
-                                    (Decode.field "runsElapsed" Decode.int)
-
-                            "CoverageCheckFailed" ->
-                                Decode.map5
-                                    (\coverageCount runsElapsed badLabel badLabelPercentage expectedCoverage ->
-                                        Test.Coverage.CoverageCheckFailed
-                                            { coverageCount = coverageCount
-                                            , runsElapsed = runsElapsed
-                                            , badLabel = badLabel
-                                            , badLabelPercentage = badLabelPercentage
-                                            , expectedCoverage = expectedCoverage
-                                            }
-                                    )
-                                    (Decode.field "coverageCount" decodeCoverageCount)
-                                    (Decode.field "runsElapsed" Decode.int)
-                                    (Decode.field "badLabel" Decode.string)
-                                    (Decode.field "badLabelPercentage" Decode.float)
-                                    (Decode.field "expectedCoverage" Decode.string)
-
-                            _ ->
-                                Decode.fail <| "Unknown CoverageReport type: " ++ type_
-                in
-                Decode.field "data" innerDecoder
-            )
-
-
-{-| For JSON, we report all the coverage we can - the maximum possible amount of information.
--}
-encodeCoverageReport : CoverageReport -> Encode.Value
-encodeCoverageReport coverageReport =
-    case coverageReport of
-        Test.Coverage.NoCoverage ->
-            Encode.null
-                |> encodeSumType "NoCoverage"
-
-        Test.Coverage.CoverageToReport r ->
-            [ ( "coverageCount", encodeCoverageCount r.coverageCount )
-            , ( "runsElapsed", Encode.int r.runsElapsed )
-            ]
-                |> Encode.object
-                |> encodeSumType "CoverageToReport"
-
-        Test.Coverage.CoverageCheckSucceeded r ->
-            [ ( "coverageCount", encodeCoverageCount r.coverageCount )
-            , ( "runsElapsed", Encode.int r.runsElapsed )
-            ]
-                |> Encode.object
-                |> encodeSumType "CoverageCheckSucceeded"
-
-        Test.Coverage.CoverageCheckFailed r ->
-            [ ( "coverageCount", encodeCoverageCount r.coverageCount )
-            , ( "runsElapsed", Encode.int r.runsElapsed )
-            , ( "badLabel", Encode.string r.badLabel )
-            , ( "badLabelPercentage", Encode.float r.badLabelPercentage )
-            , ( "expectedCoverage", Encode.string r.expectedCoverage )
-            ]
-                |> Encode.object
-                |> encodeSumType "CoverageCheckFailed"
-
-
-encodeSumType : String -> Encode.Value -> Encode.Value
-encodeSumType sumType data =
-    Encode.object
-        [ ( "type", Encode.string sumType )
-        , ( "data", data )
-        ]
-
-
-encodeCoverageCount : Dict (List String) Int -> Encode.Value
-encodeCoverageCount dict =
-    dict
-        |> Dict.toList
-        |> Encode.list
-            (\( labels, count ) ->
-                Encode.object
-                    [ ( "labels", Encode.list Encode.string labels )
-                    , ( "count", Encode.int count )
-                    ]
-            )
-
-
 
 -- Automatically generated decoders and encoders for TestResult with https://dkodaj.github.io/decgen/
 
@@ -431,4 +309,126 @@ encodeTuple_Failure_CoverageReport_ ( a1, a2 ) =
     Encode.object
         [ ( "A1", encodeFailure a1 )
         , ( "A2", encodeCoverageReport a2 )
+        ]
+
+
+type alias Record_coverageCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_badLabelPercentage_Float_expectedCoverage_String_ =
+    { coverageCount : Dict (List String) Int, runsElapsed : Int, badLabel : String, badLabelPercentage : Float, expectedCoverage : String }
+
+
+type alias Record_coverageCount_Dict_ListString_Int_runsElapsed_Int_ =
+    { coverageCount : Dict (List String) Int, runsElapsed : Int }
+
+
+decodeCoverageReport : Decoder CoverageReport
+decodeCoverageReport =
+    Decode.field "Constructor" Decode.string |> Decode.andThen decodeCoverageReportHelp
+
+
+decodeCoverageReportHelp constructor =
+    case constructor of
+        "NoCoverage" ->
+            Decode.succeed NoCoverage
+
+        "CoverageToReport" ->
+            Decode.map
+                CoverageToReport
+                (Decode.field "A1" decodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_)
+
+        "CoverageCheckSucceeded" ->
+            Decode.map
+                CoverageCheckSucceeded
+                (Decode.field "A1" decodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_)
+
+        "CoverageCheckFailed" ->
+            Decode.map
+                CoverageCheckFailed
+                (Decode.field "A1" decodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_badLabelPercentage_Float_expectedCoverage_String_)
+
+        other ->
+            Decode.fail <| "Unknown constructor for type CoverageReport: " ++ other
+
+
+decodeDict_ListString_Int : Decoder (Dict (List String) Int)
+decodeDict_ListString_Int =
+    let
+        decodeDict_ListString_IntTuple =
+            Decode.map2
+                (\a1 a2 -> ( a1, a2 ))
+                (Decode.field "A1" (Decode.list Decode.string))
+                (Decode.field "A2" Decode.int)
+    in
+    Decode.map Dict.fromList (Decode.list decodeDict_ListString_IntTuple)
+
+
+decodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_ =
+    Decode.map2
+        Record_coverageCount_Dict_ListString_Int_runsElapsed_Int_
+        (Decode.field "coverageCount" decodeDict_ListString_Int)
+        (Decode.field "runsElapsed" Decode.int)
+
+
+decodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_badLabelPercentage_Float_expectedCoverage_String_ =
+    Decode.map5
+        Record_coverageCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_badLabelPercentage_Float_expectedCoverage_String_
+        (Decode.field "coverageCount" decodeDict_ListString_Int)
+        (Decode.field "runsElapsed" Decode.int)
+        (Decode.field "badLabel" Decode.string)
+        (Decode.field "badLabelPercentage" Decode.float)
+        (Decode.field "expectedCoverage" Decode.string)
+
+
+encodeCoverageReport : CoverageReport -> Value
+encodeCoverageReport a =
+    case a of
+        NoCoverage ->
+            Encode.object
+                [ ( "Constructor", Encode.string "NoCoverage" )
+                ]
+
+        CoverageToReport a1 ->
+            Encode.object
+                [ ( "Constructor", Encode.string "CoverageToReport" )
+                , ( "A1", encodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_ a1 )
+                ]
+
+        CoverageCheckSucceeded a1 ->
+            Encode.object
+                [ ( "Constructor", Encode.string "CoverageCheckSucceeded" )
+                , ( "A1", encodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_ a1 )
+                ]
+
+        CoverageCheckFailed a1 ->
+            Encode.object
+                [ ( "Constructor", Encode.string "CoverageCheckFailed" )
+                , ( "A1", encodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_badLabelPercentage_Float_expectedCoverage_String_ a1 )
+                ]
+
+
+encodeDict_ListString_Int : Dict (List String) Int -> Value
+encodeDict_ListString_Int a =
+    let
+        encodeDict_ListString_IntTuple ( a1, a2 ) =
+            Encode.object
+                [ ( "A1", Encode.list Encode.string a1 )
+                , ( "A2", Encode.int a2 )
+                ]
+    in
+    Encode.list encodeDict_ListString_IntTuple (Dict.toList a)
+
+
+encodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_ a =
+    Encode.object
+        [ ( "coverageCount", encodeDict_ListString_Int a.coverageCount )
+        , ( "runsElapsed", Encode.int a.runsElapsed )
+        ]
+
+
+encodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_badLabelPercentage_Float_expectedCoverage_String_ a =
+    Encode.object
+        [ ( "coverageCount", encodeDict_ListString_Int a.coverageCount )
+        , ( "runsElapsed", Encode.int a.runsElapsed )
+        , ( "badLabel", Encode.string a.badLabel )
+        , ( "badLabelPercentage", Encode.float a.badLabelPercentage )
+        , ( "expectedCoverage", Encode.string a.expectedCoverage )
         ]

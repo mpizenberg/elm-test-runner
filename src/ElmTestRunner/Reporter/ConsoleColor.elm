@@ -56,8 +56,13 @@ run elm-test-rs with --seed {{ seed }} and --fuzz {{ fuzzRuns }}
 onResult : UseColor -> TestResult -> Maybe Text
 onResult useColor testResult =
     case testResult of
-        Passed _ ->
-            Nothing
+        Passed { labels, successes } ->
+            successes
+                -- TODO show labels as well
+                |> List.filterMap coverageReportToString
+                |> String.join "\n\n\n"
+                |> plain
+                |> Just
 
         Failed { labels, todos, failures, logs } ->
             if List.isEmpty todos then

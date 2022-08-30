@@ -89,12 +89,15 @@ invalidReasonToString reason =
 --     | InvalidFuzzer
 --     | BadDescription
 --     | DuplicatedName
+--     | CoverageInsufficient
+--     | CoverageBug
 
 
 type alias Record_expected_String_actual_String_extra_ListString_missing_ListString_ =
     { expected : String, actual : String, extra : List String, missing : List String }
 
 
+decodeFailure : Decoder Failure
 decodeFailure =
     Decode.map3
         Failure
@@ -103,6 +106,7 @@ decodeFailure =
         (Decode.field "reason" decodeReason)
 
 
+decodeInvalidReason : Decoder InvalidReason
 decodeInvalidReason =
     let
         recover x =
@@ -122,12 +126,19 @@ decodeInvalidReason =
                 "DuplicatedName" ->
                     Decode.succeed DuplicatedName
 
+                "CoverageInsufficient" ->
+                    Decode.succeed CoverageInsufficient
+
+                "CoverageBug" ->
+                    Decode.succeed CoverageBug
+
                 other ->
                     Decode.fail <| "Unknown constructor for type InvalidReason: " ++ other
     in
     Decode.string |> Decode.andThen recover
 
 
+decodeReason : Decoder Reason
 decodeReason =
     Decode.field "Constructor" Decode.string |> Decode.andThen decodeReasonHelp
 
@@ -181,6 +192,7 @@ decodeRecord_expected_String_actual_String_extra_ListString_missing_ListString_ 
         (Decode.field "missing" (Decode.list Decode.string))
 
 
+encodeFailure : Failure -> Value
 encodeFailure a =
     Encode.object
         [ ( "given", encodeMaybe Encode.string a.given )
@@ -189,8 +201,30 @@ encodeFailure a =
         ]
 
 
+encodeInvalidReason : InvalidReason -> Value
 encodeInvalidReason a =
-    Encode.string <| toString a
+    Encode.string <|
+        case a of
+            EmptyList ->
+                "EmptyList"
+
+            NonpositiveFuzzCount ->
+                "NonpositiveFuzzCount"
+
+            InvalidFuzzer ->
+                "InvalidFuzzer"
+
+            BadDescription ->
+                "BadDescription"
+
+            DuplicatedName ->
+                "DuplicatedName"
+
+            CoverageInsufficient ->
+                "CoverageInsufficient"
+
+            CoverageBug ->
+                "CoverageBug"
 
 
 encodeMaybe f a =
@@ -202,6 +236,7 @@ encodeMaybe f a =
             Encode.null
 
 
+encodeReason : Reason -> Value
 encodeReason a =
     case a of
         Custom ->
