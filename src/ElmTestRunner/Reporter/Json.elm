@@ -48,7 +48,7 @@ onResult result =
     let
         { status, testLabels, testFailures, testDuration } =
             case result of
-                Passed { labels, duration } ->
+                Passed { labels, duration, successes } ->
                     { status = "pass"
                     , testLabels = List.reverse labels
                     , testFailures = Encode.list Encode.string []
@@ -77,6 +77,8 @@ onResult result =
                 , ( "status", Encode.string status )
                 , ( "labels", Encode.list Encode.string testLabels )
                 , ( "failures", testFailures )
+
+                -- TODO , ( "success", ... the coverage table )
                 , ( "duration", Encode.string (String.fromFloat testDuration) )
                 ]
         )

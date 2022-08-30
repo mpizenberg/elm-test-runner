@@ -115,6 +115,7 @@ coverageReportToString coverageReport =
 
         Test.Coverage.CoverageCheckFailed _ ->
             -- The table is included in the failure message already.
+            -- TODO for elm-explorations/test: stop putting the table into the failure message, then change the Nothing below into Just
             Nothing
 
 
