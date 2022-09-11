@@ -171,9 +171,8 @@ coverageReportToString coverageReport =
             -}
             Nothing
 
-        Test.Coverage.CoverageCheckFailed _ ->
-            -- The table is included in the failure message already.
-            Nothing
+        Test.Coverage.CoverageCheckFailed r ->
+            Just (Test.Coverage.coverageReportTable r)
 
 
 {-| See spec for "failure" here:
