@@ -73,7 +73,7 @@ onResult useColor testResult =
                     |> indent
                     |> plain
                     |> dark
-                , plain "\n"
+                , plain "\n\n"
                 ]
                     |> Text.concat
                     |> Just
@@ -152,7 +152,13 @@ failureToText useColor ( { given, description, reason }, coverageReport ) =
     in
     [ coverageReport
         |> coverageReportToString
-        |> Maybe.map (\str -> dark (plain str))
+        |> Maybe.map
+            (\s ->
+                ("\n" ++ s ++ "\n")
+                    |> indent
+                    |> plain
+                    |> dark
+            )
     , given |> Maybe.map (\str -> dark (plain ("\nGiven " ++ str ++ "\n")))
     , Just messageText
     ]
