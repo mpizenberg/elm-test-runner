@@ -51,11 +51,22 @@ type TestResult
 setDuration : Float -> TestResult -> TestResult
 setDuration duration testResult =
     case testResult of
-        Passed r ->
-            Passed { r | duration = duration }
+        Passed { labels, logs, successes } ->
+            Passed
+                { labels = labels
+                , duration = duration
+                , logs = logs
+                , successes = successes
+                }
 
-        Failed r ->
-            Failed { r | duration = duration }
+        Failed { labels, logs, todos, failures } ->
+            Failed
+                { labels = labels
+                , duration = duration
+                , logs = logs
+                , todos = todos
+                , failures = failures
+                }
 
 
 {-| Set the logs received for that test.
@@ -63,11 +74,22 @@ setDuration duration testResult =
 setLogs : List String -> TestResult -> TestResult
 setLogs logs testResult =
     case testResult of
-        Passed r ->
-            Passed { r | logs = logs }
+        Passed { labels, duration, successes } ->
+            Passed
+                { labels = labels
+                , duration = duration
+                , logs = logs
+                , successes = successes
+                }
 
-        Failed r ->
-            Failed { r | logs = logs }
+        Failed { labels, duration, todos, failures } ->
+            Failed
+                { labels = labels
+                , duration = duration
+                , logs = logs
+                , todos = todos
+                , failures = failures
+                }
 
 
 {-| Convert a list of expectations (results of a run) into a `TestResult`.
