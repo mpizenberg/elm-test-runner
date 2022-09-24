@@ -110,40 +110,14 @@ encodeExercismResult { name, taskId, status, message, output } =
         ]
 
 
-coverageReportToString : CoverageReport -> Maybe String
-coverageReportToString coverageReport =
-    case coverageReport of
-        Test.Coverage.NoCoverage ->
-            Nothing
-
-        Test.Coverage.CoverageToReport r ->
-            Just (Test.Coverage.coverageReportTable r)
-
-        Test.Coverage.CoverageCheckSucceeded _ ->
-            {- Not reporting the table to the Exercism stdout (similarly to the
-               Console reporter) although the data is technically there.
-               We keep the full data dump for the JSON reporter.
-            -}
-            Nothing
-
-        Test.Coverage.CoverageCheckFailed r ->
-            Just (Test.Coverage.coverageReportTable r)
-
-
 toExercismResult : TestResult -> ExercismResult
 toExercismResult testResult =
     case testResult of
-        TestResult.Passed { labels, successes } ->
+        TestResult.Passed { labels } ->
             { name = extractTestName labels
             , taskId = extractTaskId labels
             , status = "pass"
-            , message =
-                case List.filterMap coverageReportToString successes of
-                    [] ->
-                        Nothing
-
-                    tables ->
-                        Just <| String.join "\n\n\n" tables
+            , message = Nothing
             , output = Nothing
             }
 
@@ -196,7 +170,7 @@ failureMessage failures todos =
 
 
 failureToText : UseColor -> ( Failure, CoverageReport ) -> Text
-failureToText useColor ( { given, description, reason }, coverageReport ) =
+failureToText useColor ( { given, description, reason }, _ ) =
     let
         formatEquality =
             case useColor of
@@ -209,14 +183,15 @@ failureToText useColor ( { given, description, reason }, coverageReport ) =
         messageText =
             Text.plain ("\n" ++ indent (format formatEquality description reason) ++ "\n\n")
     in
-    [ coverageReport
-        |> coverageReportToString
-        |> Maybe.map (\str -> Text.dark (Text.plain str))
-    , given |> Maybe.map (\str -> Text.dark (Text.plain ("\nGiven " ++ str ++ "\n")))
-    , Just messageText
-    ]
-        |> List.filterMap identity
-        |> Text.concat
+    case given of
+        Nothing ->
+            messageText
+
+        Just givenStr ->
+            [ Text.dark (Text.plain ("\nGiven " ++ givenStr ++ "\n"))
+            , messageText
+            ]
+                |> Text.concat
 
 
 indent : String -> String
