@@ -35,38 +35,6 @@ encode =
 
 
 
--- Functions needed by the auto-generated decoders and encoders.
-
-
-toString =
-    invalidReasonToString
-
-
-invalidReasonToString reason =
-    case reason of
-        EmptyList ->
-            "EmptyList"
-
-        NonpositiveFuzzCount ->
-            "NonpositiveFuzzCount"
-
-        InvalidFuzzer ->
-            "InvalidFuzzer"
-
-        BadDescription ->
-            "BadDescription"
-
-        DuplicatedName ->
-            "DuplicatedName"
-
-        CoverageInsufficient ->
-            "CoverageInsufficient"
-
-        CoverageBug ->
-            "CoverageBug"
-
-
-
 -- Generated decoders and encoders thanks to (https://dkodaj.github.io/decgen/)
 --
 -- type Reason
