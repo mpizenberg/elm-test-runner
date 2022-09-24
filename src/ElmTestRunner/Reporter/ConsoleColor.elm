@@ -57,12 +57,26 @@ onResult : UseColor -> TestResult -> Maybe Text
 onResult useColor testResult =
     case testResult of
         Passed { labels, successes } ->
-            successes
-                -- TODO show labels as well
-                |> List.filterMap coverageReportToString
-                |> String.join "\n\n\n"
-                |> plain
-                |> Just
+            let
+                successCoverageReports : List String
+                successCoverageReports =
+                    List.filterMap coverageReportToString successes
+            in
+            if List.isEmpty successCoverageReports then
+                Nothing
+
+            else
+                [ successLabelsToText labels
+                , plain "\n"
+                , successCoverageReports
+                    |> String.join "\n\n\n"
+                    |> indent
+                    |> plain
+                    |> dark
+                , plain "\n"
+                ]
+                    |> Text.concat
+                    |> Just
 
         Failed { labels, todos, failures, logs } ->
             if List.isEmpty todos then
@@ -95,6 +109,11 @@ formatTodo labels todo =
 failureLabelsToText : List String -> Text
 failureLabelsToText =
     formatLabels (dark << plain << withChar '↓') (red << withChar '✗') >> Text.concat
+
+
+successLabelsToText : List String -> Text
+successLabelsToText =
+    formatLabels (dark << plain << withChar '↓') (green << withChar '✓') >> Text.concat
 
 
 coverageReportToString : CoverageReport -> Maybe String
