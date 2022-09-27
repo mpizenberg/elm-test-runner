@@ -47,27 +47,30 @@ onBegin { seed, fuzzRuns, globs, paths } testsCount =
 onResult : TestResult -> Maybe String
 onResult result =
     let
-        { status, testLabels, testFailures, testDuration } =
+        { status, testLabels, testFailures, testCoverageReports, testDuration } =
             case result of
-                Passed { labels, duration, successes } ->
+                Passed { labels, duration, coverageReports } ->
                     { status = "pass"
                     , testLabels = List.reverse labels
                     , testFailures = Encode.list Encode.string []
+                    , testCoverageReports = Encode.list encodeCoverageReport coverageReports
                     , testDuration = duration
                     }
 
-                Failed { labels, duration, todos, failures } ->
+                Failed { labels, duration, todos, failures, coverageReports } ->
                     if not (List.isEmpty todos) then
                         { status = "todo"
                         , testLabels = List.reverse labels
                         , testFailures = Encode.list Encode.string todos
+                        , testCoverageReports = Encode.list identity []
                         , testDuration = duration
                         }
 
                     else
                         { status = "fail"
                         , testLabels = List.reverse labels
-                        , testFailures = Encode.list jsonEncodeFailure failures
+                        , testFailures = Encode.list encodeFailure failures
+                        , testCoverageReports = Encode.list encodeCoverageReport coverageReports
                         , testDuration = duration
                         }
     in
@@ -78,8 +81,7 @@ onResult result =
                 , ( "status", Encode.string status )
                 , ( "labels", Encode.list Encode.string testLabels )
                 , ( "failures", testFailures )
-
-                -- TODO , ( "success", ... the coverage table )
+                , ( "coverageReports", testCoverageReports )
                 , ( "duration", Encode.string (String.fromFloat testDuration) )
                 ]
         )
@@ -119,13 +121,12 @@ onEnd kind results =
             ++ "\n"
 
 
-jsonEncodeFailure : ( Failure, CoverageReport ) -> Encode.Value
-jsonEncodeFailure ( { given, description, reason }, coverageReport ) =
+encodeFailure : Failure -> Encode.Value
+encodeFailure { given, description, reason } =
     Encode.object
         [ ( "given", Maybe.withDefault Encode.null (Maybe.map Encode.string given) )
         , ( "message", Encode.string description )
         , ( "reason", encodeReason description reason )
-        , ( "coverageReport", encodeCoverageReport coverageReport )
         ]
 
 

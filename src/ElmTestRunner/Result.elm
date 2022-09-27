@@ -35,14 +35,15 @@ type TestResult
         { labels : List String
         , duration : Float
         , logs : List String
-        , successes : List CoverageReport -- TODO change to success : CoverageReport
+        , coverageReports : List CoverageReport
         }
     | Failed
         { labels : List String
         , duration : Float
         , logs : List String
         , todos : List String
-        , failures : List ( Failure, CoverageReport )
+        , failures : List Failure
+        , coverageReports : List CoverageReport
         }
 
 
@@ -51,21 +52,22 @@ type TestResult
 setDuration : Float -> TestResult -> TestResult
 setDuration duration testResult =
     case testResult of
-        Passed { labels, logs, successes } ->
+        Passed { labels, logs, coverageReports } ->
             Passed
                 { labels = labels
                 , duration = duration
                 , logs = logs
-                , successes = successes
+                , coverageReports = coverageReports
                 }
 
-        Failed { labels, logs, todos, failures } ->
+        Failed { labels, logs, todos, failures, coverageReports } ->
             Failed
                 { labels = labels
                 , duration = duration
                 , logs = logs
                 , todos = todos
                 , failures = failures
+                , coverageReports = coverageReports
                 }
 
 
@@ -74,21 +76,22 @@ setDuration duration testResult =
 setLogs : List String -> TestResult -> TestResult
 setLogs logs testResult =
     case testResult of
-        Passed { labels, duration, successes } ->
+        Passed { labels, duration, coverageReports } ->
             Passed
                 { labels = labels
                 , duration = duration
                 , logs = logs
-                , successes = successes
+                , coverageReports = coverageReports
                 }
 
-        Failed { labels, duration, todos, failures } ->
+        Failed { labels, duration, todos, failures, coverageReports } ->
             Failed
                 { labels = labels
                 , duration = duration
                 , logs = logs
                 , todos = todos
                 , failures = failures
+                , coverageReports = coverageReports
                 }
 
 
@@ -107,7 +110,7 @@ fromExpectations labels expectations =
             { labels = labels
             , duration = 0
             , logs = []
-            , successes = outcomes.successes
+            , coverageReports = outcomes.coverageReports
             }
 
     else
@@ -117,13 +120,14 @@ fromExpectations labels expectations =
             , logs = []
             , todos = outcomes.todos
             , failures = outcomes.failures
+            , coverageReports = outcomes.coverageReports
             }
 
 
 type alias Outcomes =
     { todos : List String
-    , failures : List ( Failure, CoverageReport )
-    , successes : List CoverageReport
+    , failures : List Failure
+    , coverageReports : List CoverageReport
     }
 
 
@@ -131,7 +135,7 @@ initOutcomes : Outcomes
 initOutcomes =
     { todos = []
     , failures = []
-    , successes = []
+    , coverageReports = []
     }
 
 
@@ -149,14 +153,17 @@ accumOutcomes expectation outcomes =
     in
     case Test.Runner.getFailureReason expectation of
         Nothing ->
-            { outcomes | successes = coverageReport :: outcomes.successes }
+            { outcomes | coverageReports = coverageReport :: outcomes.coverageReports }
 
         Just failure ->
             if Test.Runner.isTodo expectation then
                 { outcomes | todos = failure.description :: outcomes.todos }
 
             else
-                { outcomes | failures = ( failure, coverageReport ) :: outcomes.failures }
+                { outcomes
+                    | failures = failure :: outcomes.failures
+                    , coverageReports = coverageReport :: outcomes.coverageReports
+                }
 
 
 {-| Encode a `TestResult`.
@@ -235,111 +242,24 @@ encodeFailure =
 -- Automatically generated decoders and encoders for TestResult with https://dkodaj.github.io/decgen/
 
 
-type alias Record_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_List_Failure_CoverageReport__ =
-    { labels : List String, duration : Float, logs : List String, todos : List String, failures : List ( Failure, CoverageReport ) }
-
-
-type alias Record_labels_ListString_duration_Float_logs_ListString_successes_ListCoverageReport_ =
-    { labels : List String, duration : Float, logs : List String, successes : List CoverageReport }
-
-
-decodeRecord_labels_ListString_duration_Float_logs_ListString_successes_ListCoverageReport_ =
-    Decode.map4
-        Record_labels_ListString_duration_Float_logs_ListString_successes_ListCoverageReport_
-        (Decode.field "labels" (Decode.list Decode.string))
-        (Decode.field "duration" Decode.float)
-        (Decode.field "logs" (Decode.list Decode.string))
-        (Decode.field "successes" (Decode.list decodeCoverageReport))
-
-
-decodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_List_Failure_CoverageReport__ =
-    Decode.map5
-        Record_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_List_Failure_CoverageReport__
-        (Decode.field "labels" (Decode.list Decode.string))
-        (Decode.field "duration" Decode.float)
-        (Decode.field "logs" (Decode.list Decode.string))
-        (Decode.field "todos" (Decode.list Decode.string))
-        (Decode.field "failures" (Decode.list decodeTuple_Failure_CoverageReport_))
-
-
-decodeTestResult : Decoder TestResult
-decodeTestResult =
-    Decode.field "Constructor" Decode.string |> Decode.andThen decodeTestResultHelp
-
-
-decodeTestResultHelp constructor =
-    case constructor of
-        "Passed" ->
-            Decode.map
-                Passed
-                (Decode.field "A1" decodeRecord_labels_ListString_duration_Float_logs_ListString_successes_ListCoverageReport_)
-
-        "Failed" ->
-            Decode.map
-                Failed
-                (Decode.field "A1" decodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_List_Failure_CoverageReport__)
-
-        other ->
-            Decode.fail <| "Unknown constructor for type TestResult: " ++ other
-
-
-decodeTuple_Failure_CoverageReport_ : Decoder ( Failure, CoverageReport )
-decodeTuple_Failure_CoverageReport_ =
-    Decode.map2
-        (\a1 a2 -> ( a1, a2 ))
-        (Decode.field "A1" decodeFailure)
-        (Decode.field "A2" decodeCoverageReport)
-
-
-encodeRecord_labels_ListString_duration_Float_logs_ListString_successes_ListCoverageReport_ a =
-    Encode.object
-        [ ( "labels", Encode.list Encode.string a.labels )
-        , ( "duration", Encode.float a.duration )
-        , ( "logs", Encode.list Encode.string a.logs )
-        , ( "successes", Encode.list encodeCoverageReport a.successes )
-        ]
-
-
-encodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_List_Failure_CoverageReport__ a =
-    Encode.object
-        [ ( "labels", Encode.list Encode.string a.labels )
-        , ( "duration", Encode.float a.duration )
-        , ( "logs", Encode.list Encode.string a.logs )
-        , ( "todos", Encode.list Encode.string a.todos )
-        , ( "failures", Encode.list encodeTuple_Failure_CoverageReport_ a.failures )
-        ]
-
-
-encodeTestResult : TestResult -> Value
-encodeTestResult a =
-    case a of
-        Passed a1 ->
-            Encode.object
-                [ ( "Constructor", Encode.string "Passed" )
-                , ( "A1", encodeRecord_labels_ListString_duration_Float_logs_ListString_successes_ListCoverageReport_ a1 )
-                ]
-
-        Failed a1 ->
-            Encode.object
-                [ ( "Constructor", Encode.string "Failed" )
-                , ( "A1", encodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_List_Failure_CoverageReport__ a1 )
-                ]
-
-
-encodeTuple_Failure_CoverageReport_ : ( Failure, CoverageReport ) -> Value
-encodeTuple_Failure_CoverageReport_ ( a1, a2 ) =
-    Encode.object
-        [ ( "A1", encodeFailure a1 )
-        , ( "A2", encodeCoverageReport a2 )
-        ]
-
-
 type alias Record_coverageCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_badLabelPercentage_Float_expectedCoverage_String_ =
     { coverageCount : Dict (List String) Int, runsElapsed : Int, badLabel : String, badLabelPercentage : Float, expectedCoverage : String }
 
 
 type alias Record_coverageCount_Dict_ListString_Int_runsElapsed_Int_ =
     { coverageCount : Dict (List String) Int, runsElapsed : Int }
+
+
+type alias Record_expected_String_actual_String_extra_ListString_missing_ListString_ =
+    { expected : String, actual : String, extra : List String, missing : List String }
+
+
+type alias Record_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_coverageReports_ListCoverageReport_ =
+    { labels : List String, duration : Float, logs : List String, todos : List String, failures : List Failure, coverageReports : List CoverageReport }
+
+
+type alias Record_labels_ListString_duration_Float_logs_ListString_coverageReports_ListCoverageReport_ =
+    { labels : List String, duration : Float, logs : List String, coverageReports : List CoverageReport }
 
 
 decodeCoverageReport : Decoder CoverageReport
@@ -400,6 +320,56 @@ decodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_b
         (Decode.field "expectedCoverage" Decode.string)
 
 
+decodeRecord_expected_String_actual_String_extra_ListString_missing_ListString_ =
+    Decode.map4
+        Record_expected_String_actual_String_extra_ListString_missing_ListString_
+        (Decode.field "expected" Decode.string)
+        (Decode.field "actual" Decode.string)
+        (Decode.field "extra" (Decode.list Decode.string))
+        (Decode.field "missing" (Decode.list Decode.string))
+
+
+decodeRecord_labels_ListString_duration_Float_logs_ListString_coverageReports_ListCoverageReport_ =
+    Decode.map4
+        Record_labels_ListString_duration_Float_logs_ListString_coverageReports_ListCoverageReport_
+        (Decode.field "labels" (Decode.list Decode.string))
+        (Decode.field "duration" Decode.float)
+        (Decode.field "logs" (Decode.list Decode.string))
+        (Decode.field "coverageReports" (Decode.list decodeCoverageReport))
+
+
+decodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_coverageReports_ListCoverageReport_ =
+    Decode.map6
+        Record_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_coverageReports_ListCoverageReport_
+        (Decode.field "labels" (Decode.list Decode.string))
+        (Decode.field "duration" Decode.float)
+        (Decode.field "logs" (Decode.list Decode.string))
+        (Decode.field "todos" (Decode.list Decode.string))
+        (Decode.field "failures" (Decode.list decodeFailure))
+        (Decode.field "coverageReports" (Decode.list decodeCoverageReport))
+
+
+decodeTestResult : Decoder TestResult
+decodeTestResult =
+    Decode.field "Constructor" Decode.string |> Decode.andThen decodeTestResultHelp
+
+
+decodeTestResultHelp constructor =
+    case constructor of
+        "Passed" ->
+            Decode.map
+                Passed
+                (Decode.field "A1" decodeRecord_labels_ListString_duration_Float_logs_ListString_coverageReports_ListCoverageReport_)
+
+        "Failed" ->
+            Decode.map
+                Failed
+                (Decode.field "A1" decodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_coverageReports_ListCoverageReport_)
+
+        other ->
+            Decode.fail <| "Unknown constructor for type TestResult: " ++ other
+
+
 encodeCoverageReport : CoverageReport -> Value
 encodeCoverageReport a =
     case a of
@@ -454,3 +424,48 @@ encodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_b
         , ( "badLabelPercentage", Encode.float a.badLabelPercentage )
         , ( "expectedCoverage", Encode.string a.expectedCoverage )
         ]
+
+
+encodeRecord_expected_String_actual_String_extra_ListString_missing_ListString_ a =
+    Encode.object
+        [ ( "expected", Encode.string a.expected )
+        , ( "actual", Encode.string a.actual )
+        , ( "extra", Encode.list Encode.string a.extra )
+        , ( "missing", Encode.list Encode.string a.missing )
+        ]
+
+
+encodeRecord_labels_ListString_duration_Float_logs_ListString_coverageReports_ListCoverageReport_ a =
+    Encode.object
+        [ ( "labels", Encode.list Encode.string a.labels )
+        , ( "duration", Encode.float a.duration )
+        , ( "logs", Encode.list Encode.string a.logs )
+        , ( "coverageReports", Encode.list encodeCoverageReport a.coverageReports )
+        ]
+
+
+encodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_coverageReports_ListCoverageReport_ a =
+    Encode.object
+        [ ( "labels", Encode.list Encode.string a.labels )
+        , ( "duration", Encode.float a.duration )
+        , ( "logs", Encode.list Encode.string a.logs )
+        , ( "todos", Encode.list Encode.string a.todos )
+        , ( "failures", Encode.list encodeFailure a.failures )
+        , ( "coverageReports", Encode.list encodeCoverageReport a.coverageReports )
+        ]
+
+
+encodeTestResult : TestResult -> Value
+encodeTestResult a =
+    case a of
+        Passed a1 ->
+            Encode.object
+                [ ( "Constructor", Encode.string "Passed" )
+                , ( "A1", encodeRecord_labels_ListString_duration_Float_logs_ListString_coverageReports_ListCoverageReport_ a1 )
+                ]
+
+        Failed a1 ->
+            Encode.object
+                [ ( "Constructor", Encode.string "Failed" )
+                , ( "A1", encodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_coverageReports_ListCoverageReport_ a1 )
+                ]

@@ -43,13 +43,13 @@ onResult result =
         Passed _ ->
             Nothing
 
-        Failed { labels, todos, failures, logs } ->
+        Failed { labels, todos, failures, logs, coverageReports } ->
             Just <|
                 String.join "\n"
                     [ ""
                     , formatLabels labels
                     , ""
-                    , indent (displayFailureContent todos failures logs)
+                    , indent (displayFailureContent todos failures coverageReports logs)
                     ]
 
 
@@ -79,11 +79,18 @@ indent str =
         |> String.join "\n"
 
 
-displayFailureContent : List String -> List ( Failure, CoverageReport ) -> List String -> String
-displayFailureContent todos failures logs =
-    "with todos: {{ todos }}\nwith failures: {{ failures }}\nwith debug logs:\n\n{{ logs }}\n"
+displayFailureContent : List String -> List Failure -> List CoverageReport -> List String -> String
+displayFailureContent todos failures coverageReports logs =
+    """with todos: {{ todos }}
+with failures: {{ failures }}
+with coverage reports: {{ coverageReports }}
+with debug logs:
+
+{{ logs }}
+"""
         |> String.replace "{{ todos }}" (Debug.toString todos)
         |> String.replace "{{ failures }}" (Debug.toString failures)
+        |> String.replace "{{ coverageReports }}" (Debug.toString coverageReports)
         |> String.replace "{{ logs }}" (String.concat logs)
 
 

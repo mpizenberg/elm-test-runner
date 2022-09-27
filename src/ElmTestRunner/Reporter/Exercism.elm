@@ -121,7 +121,7 @@ toExercismResult testResult =
             , output = Nothing
             }
 
-        TestResult.Failed { labels, failures, todos, logs } ->
+        TestResult.Failed { labels, failures, todos, logs, coverageReports } ->
             { name = extractTestName labels
             , taskId = extractTaskId labels
             , status = "fail"
@@ -154,7 +154,7 @@ extractTaskId labels =
         |> List.head
 
 
-failureMessage : List ( Failure, CoverageReport ) -> List String -> String
+failureMessage : List Failure -> List String -> String
 failureMessage failures todos =
     let
         useColor =
@@ -169,8 +169,8 @@ failureMessage failures todos =
         String.join "\n" todos
 
 
-failureToText : UseColor -> ( Failure, CoverageReport ) -> Text
-failureToText useColor ( { given, description, reason }, _ ) =
+failureToText : UseColor -> Failure -> Text
+failureToText useColor { given, description, reason } =
     let
         formatEquality =
             case useColor of

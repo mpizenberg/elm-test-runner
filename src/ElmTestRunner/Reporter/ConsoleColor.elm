@@ -56,11 +56,11 @@ run elm-test-rs with --seed {{ seed }} and --fuzz {{ fuzzRuns }}
 onResult : UseColor -> TestResult -> Maybe Text
 onResult useColor testResult =
     case testResult of
-        Passed { labels, successes } ->
+        Passed { labels, coverageReports } ->
             let
                 successCoverageReports : List String
                 successCoverageReports =
-                    List.filterMap coverageReportToString successes
+                    List.filterMap coverageReportToString coverageReports
             in
             if List.isEmpty successCoverageReports then
                 Nothing
@@ -78,12 +78,12 @@ onResult useColor testResult =
                     |> Text.concat
                     |> Just
 
-        Failed { labels, todos, failures, logs } ->
+        Failed { labels, todos, failures, logs, coverageReports } ->
             if List.isEmpty todos then
                 -- We have non-TODOs still failing; report them, not the TODOs.
                 List.concat
                     [ [ failureLabelsToText labels ]
-                    , List.map (failureToText useColor) failures
+                    , List.map2 (failureToText useColor) failures coverageReports
                     , [ logsToText logs ]
                     ]
                     |> Text.concat
@@ -136,8 +136,8 @@ coverageReportToString coverageReport =
             Just (Test.Coverage.coverageReportTable r)
 
 
-failureToText : UseColor -> ( Failure, CoverageReport ) -> Text
-failureToText useColor ( { given, description, reason }, coverageReport ) =
+failureToText : UseColor -> Failure -> CoverageReport -> Text
+failureToText useColor { given, description, reason } coverageReport =
     let
         formatEquality =
             case useColor of

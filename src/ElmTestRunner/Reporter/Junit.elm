@@ -115,7 +115,7 @@ encodeTestResult result =
                 TestResult.Failed test ->
                     { labels = test.labels
                     , duration = test.duration
-                    , failures = encodeFailures test.failures test.todos
+                    , failures = encodeFailures test.failures test.coverageReports test.todos
                     , logs = test.logs
                     }
 
@@ -178,13 +178,13 @@ coverageReportToString coverageReport =
 {-| See spec for "failure" here:
 <https://github.com/windyroad/JUnit-Schema/blob/master/JUnit.xsd>
 -}
-encodeFailures : List ( Failure, CoverageReport ) -> List String -> Encode.Value
-encodeFailures failures todos =
+encodeFailures : List Failure -> List CoverageReport -> List String -> Encode.Value
+encodeFailures failures coverageReports todos =
     let
         message : String
         message =
             if not (List.isEmpty failures) then
-                List.map (Tuple.first >> formatFailure) failures
+                List.map formatFailure failures
                     |> String.join "\n\n\n"
 
             else
@@ -193,7 +193,7 @@ encodeFailures failures todos =
 
         stdout : Maybe String
         stdout =
-            case List.filterMap (Tuple.second >> coverageReportToString) failures of
+            case List.filterMap coverageReportToString coverageReports of
                 [] ->
                     Nothing
 
