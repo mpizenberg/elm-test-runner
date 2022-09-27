@@ -1,6 +1,6 @@
 module ElmTestRunner.Result exposing
     ( TestResult(..), fromExpectations, setDuration, setLogs, encode, decoder
-    , Summary, summary, encodeCoverageReport
+    , Summary, summary
     )
 
 {-| Types and functions to manipulate a test result.
@@ -13,7 +13,7 @@ module ElmTestRunner.Result exposing
 
 # Helper functions
 
-@docs Summary, summary, encodeCoverageReport
+@docs Summary, summary
 
 -}
 
