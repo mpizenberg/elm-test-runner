@@ -11,7 +11,7 @@ import ElmTestRunner.Failure exposing (Failure)
 import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Result as TestResult exposing (Summary, TestResult(..))
 import ElmTestRunner.SeededRunners exposing (Kind(..))
-import Test.Coverage exposing (CoverageReport)
+import Test.Distribution exposing (DistributionReport)
 
 
 {-| Provide a console implementation of a reporter, mostly for human consumption.
@@ -43,13 +43,13 @@ onResult result =
         Passed _ ->
             Nothing
 
-        Failed { labels, todos, failures, logs, coverageReports } ->
+        Failed { labels, todos, failures, logs, distributionReports } ->
             Just <|
                 String.join "\n"
                     [ ""
                     , formatLabels labels
                     , ""
-                    , indent (displayFailureContent todos failures coverageReports logs)
+                    , indent (displayFailureContent todos failures distributionReports logs)
                     ]
 
 
@@ -79,18 +79,18 @@ indent str =
         |> String.join "\n"
 
 
-displayFailureContent : List String -> List Failure -> List CoverageReport -> List String -> String
-displayFailureContent todos failures coverageReports logs =
+displayFailureContent : List String -> List Failure -> List DistributionReport -> List String -> String
+displayFailureContent todos failures distributionReports logs =
     """with todos: {{ todos }}
 with failures: {{ failures }}
-with coverage reports: {{ coverageReports }}
+with distribution reports: {{ distributionReports }}
 with debug logs:
 
 {{ logs }}
 """
         |> String.replace "{{ todos }}" (Debug.toString todos)
         |> String.replace "{{ failures }}" (Debug.toString failures)
-        |> String.replace "{{ coverageReports }}" (Debug.toString coverageReports)
+        |> String.replace "{{ distributionReports }}" (Debug.toString distributionReports)
         |> String.replace "{{ logs }}" (String.concat logs)
 
 

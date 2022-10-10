@@ -23,7 +23,7 @@ import ElmTestRunner.Failure as Failure exposing (Failure)
 import Expect exposing (Expectation)
 import Json.Decode as Decode exposing (Decoder, Value)
 import Json.Encode as Encode
-import Test.Coverage exposing (CoverageReport(..))
+import Test.Distribution exposing (DistributionReport(..))
 import Test.Runner
 
 
@@ -35,7 +35,7 @@ type TestResult
         { labels : List String
         , duration : Float
         , logs : List String
-        , coverageReports : List CoverageReport
+        , distributionReports : List DistributionReport
         }
     | Failed
         { labels : List String
@@ -43,7 +43,7 @@ type TestResult
         , logs : List String
         , todos : List String
         , failures : List Failure
-        , coverageReports : List CoverageReport
+        , distributionReports : List DistributionReport
         }
 
 
@@ -52,22 +52,22 @@ type TestResult
 setDuration : Float -> TestResult -> TestResult
 setDuration duration testResult =
     case testResult of
-        Passed { labels, logs, coverageReports } ->
+        Passed { labels, logs, distributionReports } ->
             Passed
                 { labels = labels
                 , duration = duration
                 , logs = logs
-                , coverageReports = coverageReports
+                , distributionReports = distributionReports
                 }
 
-        Failed { labels, logs, todos, failures, coverageReports } ->
+        Failed { labels, logs, todos, failures, distributionReports } ->
             Failed
                 { labels = labels
                 , duration = duration
                 , logs = logs
                 , todos = todos
                 , failures = failures
-                , coverageReports = coverageReports
+                , distributionReports = distributionReports
                 }
 
 
@@ -76,22 +76,22 @@ setDuration duration testResult =
 setLogs : List String -> TestResult -> TestResult
 setLogs logs testResult =
     case testResult of
-        Passed { labels, duration, coverageReports } ->
+        Passed { labels, duration, distributionReports } ->
             Passed
                 { labels = labels
                 , duration = duration
                 , logs = logs
-                , coverageReports = coverageReports
+                , distributionReports = distributionReports
                 }
 
-        Failed { labels, duration, todos, failures, coverageReports } ->
+        Failed { labels, duration, todos, failures, distributionReports } ->
             Failed
                 { labels = labels
                 , duration = duration
                 , logs = logs
                 , todos = todos
                 , failures = failures
-                , coverageReports = coverageReports
+                , distributionReports = distributionReports
                 }
 
 
@@ -110,7 +110,7 @@ fromExpectations labels expectations =
             { labels = labels
             , duration = 0
             , logs = []
-            , coverageReports = outcomes.coverageReports
+            , distributionReports = outcomes.distributionReports
             }
 
     else
@@ -120,14 +120,14 @@ fromExpectations labels expectations =
             , logs = []
             , todos = outcomes.todos
             , failures = outcomes.failures
-            , coverageReports = outcomes.coverageReports
+            , distributionReports = outcomes.distributionReports
             }
 
 
 type alias Outcomes =
     { todos : List String
     , failures : List Failure
-    , coverageReports : List CoverageReport
+    , distributionReports : List DistributionReport
     }
 
 
@@ -135,7 +135,7 @@ initOutcomes : Outcomes
 initOutcomes =
     { todos = []
     , failures = []
-    , coverageReports = []
+    , distributionReports = []
     }
 
 
@@ -147,13 +147,13 @@ getOutcomes expectations =
 accumOutcomes : Expectation -> Outcomes -> Outcomes
 accumOutcomes expectation outcomes =
     let
-        coverageReport : CoverageReport
-        coverageReport =
-            Test.Runner.getCoverageReport expectation
+        distributionReport : DistributionReport
+        distributionReport =
+            Test.Runner.getDistributionReport expectation
     in
     case Test.Runner.getFailureReason expectation of
         Nothing ->
-            { outcomes | coverageReports = coverageReport :: outcomes.coverageReports }
+            { outcomes | distributionReports = distributionReport :: outcomes.distributionReports }
 
         Just failure ->
             if Test.Runner.isTodo expectation then
@@ -162,7 +162,7 @@ accumOutcomes expectation outcomes =
             else
                 { outcomes
                     | failures = failure :: outcomes.failures
-                    , coverageReports = coverageReport :: outcomes.coverageReports
+                    , distributionReports = distributionReport :: outcomes.distributionReports
                 }
 
 
@@ -242,53 +242,53 @@ encodeFailure =
 -- Automatically generated decoders and encoders for TestResult with https://dkodaj.github.io/decgen/
 
 
-type alias Record_coverageCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_badLabelPercentage_Float_expectedCoverage_String_ =
-    { coverageCount : Dict (List String) Int, runsElapsed : Int, badLabel : String, badLabelPercentage : Float, expectedCoverage : String }
+type alias Record_distributionCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_badLabelPercentage_Float_expectedDistribution_String_ =
+    { distributionCount : Dict (List String) Int, runsElapsed : Int, badLabel : String, badLabelPercentage : Float, expectedDistribution : String }
 
 
-type alias Record_coverageCount_Dict_ListString_Int_runsElapsed_Int_ =
-    { coverageCount : Dict (List String) Int, runsElapsed : Int }
+type alias Record_distributionCount_Dict_ListString_Int_runsElapsed_Int_ =
+    { distributionCount : Dict (List String) Int, runsElapsed : Int }
 
 
 type alias Record_expected_String_actual_String_extra_ListString_missing_ListString_ =
     { expected : String, actual : String, extra : List String, missing : List String }
 
 
-type alias Record_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_coverageReports_ListCoverageReport_ =
-    { labels : List String, duration : Float, logs : List String, todos : List String, failures : List Failure, coverageReports : List CoverageReport }
+type alias Record_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_distributionReports_ListDistributionReport_ =
+    { labels : List String, duration : Float, logs : List String, todos : List String, failures : List Failure, distributionReports : List DistributionReport }
 
 
-type alias Record_labels_ListString_duration_Float_logs_ListString_coverageReports_ListCoverageReport_ =
-    { labels : List String, duration : Float, logs : List String, coverageReports : List CoverageReport }
+type alias Record_labels_ListString_duration_Float_logs_ListString_distributionReports_ListDistributionReport_ =
+    { labels : List String, duration : Float, logs : List String, distributionReports : List DistributionReport }
 
 
-decodeCoverageReport : Decoder CoverageReport
-decodeCoverageReport =
-    Decode.field "Constructor" Decode.string |> Decode.andThen decodeCoverageReportHelp
+decodeDistributionReport : Decoder DistributionReport
+decodeDistributionReport =
+    Decode.field "Constructor" Decode.string |> Decode.andThen decodeDistributionReportHelp
 
 
-decodeCoverageReportHelp constructor =
+decodeDistributionReportHelp constructor =
     case constructor of
-        "NoCoverage" ->
-            Decode.succeed NoCoverage
+        "NoDistribution" ->
+            Decode.succeed NoDistribution
 
-        "CoverageToReport" ->
+        "DistributionToReport" ->
             Decode.map
-                CoverageToReport
-                (Decode.field "A1" decodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_)
+                DistributionToReport
+                (Decode.field "A1" decodeRecord_distributionCount_Dict_ListString_Int_runsElapsed_Int_)
 
-        "CoverageCheckSucceeded" ->
+        "DistributionCheckSucceeded" ->
             Decode.map
-                CoverageCheckSucceeded
-                (Decode.field "A1" decodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_)
+                DistributionCheckSucceeded
+                (Decode.field "A1" decodeRecord_distributionCount_Dict_ListString_Int_runsElapsed_Int_)
 
-        "CoverageCheckFailed" ->
+        "DistributionCheckFailed" ->
             Decode.map
-                CoverageCheckFailed
-                (Decode.field "A1" decodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_badLabelPercentage_Float_expectedCoverage_String_)
+                DistributionCheckFailed
+                (Decode.field "A1" decodeRecord_distributionCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_badLabelPercentage_Float_expectedDistribution_String_)
 
         other ->
-            Decode.fail <| "Unknown constructor for type CoverageReport: " ++ other
+            Decode.fail <| "Unknown constructor for type DistributionReport: " ++ other
 
 
 decodeDict_ListString_Int : Decoder (Dict (List String) Int)
@@ -303,21 +303,21 @@ decodeDict_ListString_Int =
     Decode.map Dict.fromList (Decode.list decodeDict_ListString_IntTuple)
 
 
-decodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_ =
+decodeRecord_distributionCount_Dict_ListString_Int_runsElapsed_Int_ =
     Decode.map2
-        Record_coverageCount_Dict_ListString_Int_runsElapsed_Int_
-        (Decode.field "coverageCount" decodeDict_ListString_Int)
+        Record_distributionCount_Dict_ListString_Int_runsElapsed_Int_
+        (Decode.field "distributionCount" decodeDict_ListString_Int)
         (Decode.field "runsElapsed" Decode.int)
 
 
-decodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_badLabelPercentage_Float_expectedCoverage_String_ =
+decodeRecord_distributionCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_badLabelPercentage_Float_expectedDistribution_String_ =
     Decode.map5
-        Record_coverageCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_badLabelPercentage_Float_expectedCoverage_String_
-        (Decode.field "coverageCount" decodeDict_ListString_Int)
+        Record_distributionCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_badLabelPercentage_Float_expectedDistribution_String_
+        (Decode.field "distributionCount" decodeDict_ListString_Int)
         (Decode.field "runsElapsed" Decode.int)
         (Decode.field "badLabel" Decode.string)
         (Decode.field "badLabelPercentage" Decode.float)
-        (Decode.field "expectedCoverage" Decode.string)
+        (Decode.field "expectedDistribution" Decode.string)
 
 
 decodeRecord_expected_String_actual_String_extra_ListString_missing_ListString_ =
@@ -329,24 +329,24 @@ decodeRecord_expected_String_actual_String_extra_ListString_missing_ListString_ 
         (Decode.field "missing" (Decode.list Decode.string))
 
 
-decodeRecord_labels_ListString_duration_Float_logs_ListString_coverageReports_ListCoverageReport_ =
+decodeRecord_labels_ListString_duration_Float_logs_ListString_distributionReports_ListDistributionReport_ =
     Decode.map4
-        Record_labels_ListString_duration_Float_logs_ListString_coverageReports_ListCoverageReport_
+        Record_labels_ListString_duration_Float_logs_ListString_distributionReports_ListDistributionReport_
         (Decode.field "labels" (Decode.list Decode.string))
         (Decode.field "duration" Decode.float)
         (Decode.field "logs" (Decode.list Decode.string))
-        (Decode.field "coverageReports" (Decode.list decodeCoverageReport))
+        (Decode.field "distributionReports" (Decode.list decodeDistributionReport))
 
 
-decodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_coverageReports_ListCoverageReport_ =
+decodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_distributionReports_ListDistributionReport_ =
     Decode.map6
-        Record_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_coverageReports_ListCoverageReport_
+        Record_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_distributionReports_ListDistributionReport_
         (Decode.field "labels" (Decode.list Decode.string))
         (Decode.field "duration" Decode.float)
         (Decode.field "logs" (Decode.list Decode.string))
         (Decode.field "todos" (Decode.list Decode.string))
         (Decode.field "failures" (Decode.list decodeFailure))
-        (Decode.field "coverageReports" (Decode.list decodeCoverageReport))
+        (Decode.field "distributionReports" (Decode.list decodeDistributionReport))
 
 
 decodeTestResult : Decoder TestResult
@@ -359,41 +359,41 @@ decodeTestResultHelp constructor =
         "Passed" ->
             Decode.map
                 Passed
-                (Decode.field "A1" decodeRecord_labels_ListString_duration_Float_logs_ListString_coverageReports_ListCoverageReport_)
+                (Decode.field "A1" decodeRecord_labels_ListString_duration_Float_logs_ListString_distributionReports_ListDistributionReport_)
 
         "Failed" ->
             Decode.map
                 Failed
-                (Decode.field "A1" decodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_coverageReports_ListCoverageReport_)
+                (Decode.field "A1" decodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_distributionReports_ListDistributionReport_)
 
         other ->
             Decode.fail <| "Unknown constructor for type TestResult: " ++ other
 
 
-encodeCoverageReport : CoverageReport -> Value
-encodeCoverageReport a =
+encodeDistributionReport : DistributionReport -> Value
+encodeDistributionReport a =
     case a of
-        NoCoverage ->
+        NoDistribution ->
             Encode.object
-                [ ( "Constructor", Encode.string "NoCoverage" )
+                [ ( "Constructor", Encode.string "NoDistribution" )
                 ]
 
-        CoverageToReport a1 ->
+        DistributionToReport a1 ->
             Encode.object
-                [ ( "Constructor", Encode.string "CoverageToReport" )
-                , ( "A1", encodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_ a1 )
+                [ ( "Constructor", Encode.string "DistributionToReport" )
+                , ( "A1", encodeRecord_distributionCount_Dict_ListString_Int_runsElapsed_Int_ a1 )
                 ]
 
-        CoverageCheckSucceeded a1 ->
+        DistributionCheckSucceeded a1 ->
             Encode.object
-                [ ( "Constructor", Encode.string "CoverageCheckSucceeded" )
-                , ( "A1", encodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_ a1 )
+                [ ( "Constructor", Encode.string "DistributionCheckSucceeded" )
+                , ( "A1", encodeRecord_distributionCount_Dict_ListString_Int_runsElapsed_Int_ a1 )
                 ]
 
-        CoverageCheckFailed a1 ->
+        DistributionCheckFailed a1 ->
             Encode.object
-                [ ( "Constructor", Encode.string "CoverageCheckFailed" )
-                , ( "A1", encodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_badLabelPercentage_Float_expectedCoverage_String_ a1 )
+                [ ( "Constructor", Encode.string "DistributionCheckFailed" )
+                , ( "A1", encodeRecord_distributionCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_badLabelPercentage_Float_expectedDistribution_String_ a1 )
                 ]
 
 
@@ -409,20 +409,20 @@ encodeDict_ListString_Int a =
     Encode.list encodeDict_ListString_IntTuple (Dict.toList a)
 
 
-encodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_ a =
+encodeRecord_distributionCount_Dict_ListString_Int_runsElapsed_Int_ a =
     Encode.object
-        [ ( "coverageCount", encodeDict_ListString_Int a.coverageCount )
+        [ ( "distributionCount", encodeDict_ListString_Int a.distributionCount )
         , ( "runsElapsed", Encode.int a.runsElapsed )
         ]
 
 
-encodeRecord_coverageCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_badLabelPercentage_Float_expectedCoverage_String_ a =
+encodeRecord_distributionCount_Dict_ListString_Int_runsElapsed_Int_badLabel_String_badLabelPercentage_Float_expectedDistribution_String_ a =
     Encode.object
-        [ ( "coverageCount", encodeDict_ListString_Int a.coverageCount )
+        [ ( "distributionCount", encodeDict_ListString_Int a.distributionCount )
         , ( "runsElapsed", Encode.int a.runsElapsed )
         , ( "badLabel", Encode.string a.badLabel )
         , ( "badLabelPercentage", Encode.float a.badLabelPercentage )
-        , ( "expectedCoverage", Encode.string a.expectedCoverage )
+        , ( "expectedDistribution", Encode.string a.expectedDistribution )
         ]
 
 
@@ -435,23 +435,23 @@ encodeRecord_expected_String_actual_String_extra_ListString_missing_ListString_ 
         ]
 
 
-encodeRecord_labels_ListString_duration_Float_logs_ListString_coverageReports_ListCoverageReport_ a =
+encodeRecord_labels_ListString_duration_Float_logs_ListString_distributionReports_ListDistributionReport_ a =
     Encode.object
         [ ( "labels", Encode.list Encode.string a.labels )
         , ( "duration", Encode.float a.duration )
         , ( "logs", Encode.list Encode.string a.logs )
-        , ( "coverageReports", Encode.list encodeCoverageReport a.coverageReports )
+        , ( "distributionReports", Encode.list encodeDistributionReport a.distributionReports )
         ]
 
 
-encodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_coverageReports_ListCoverageReport_ a =
+encodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_distributionReports_ListDistributionReport_ a =
     Encode.object
         [ ( "labels", Encode.list Encode.string a.labels )
         , ( "duration", Encode.float a.duration )
         , ( "logs", Encode.list Encode.string a.logs )
         , ( "todos", Encode.list Encode.string a.todos )
         , ( "failures", Encode.list encodeFailure a.failures )
-        , ( "coverageReports", Encode.list encodeCoverageReport a.coverageReports )
+        , ( "distributionReports", Encode.list encodeDistributionReport a.distributionReports )
         ]
 
 
@@ -461,11 +461,11 @@ encodeTestResult a =
         Passed a1 ->
             Encode.object
                 [ ( "Constructor", Encode.string "Passed" )
-                , ( "A1", encodeRecord_labels_ListString_duration_Float_logs_ListString_coverageReports_ListCoverageReport_ a1 )
+                , ( "A1", encodeRecord_labels_ListString_duration_Float_logs_ListString_distributionReports_ListDistributionReport_ a1 )
                 ]
 
         Failed a1 ->
             Encode.object
                 [ ( "Constructor", Encode.string "Failed" )
-                , ( "A1", encodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_coverageReports_ListCoverageReport_ a1 )
+                , ( "A1", encodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_distributionReports_ListDistributionReport_ a1 )
                 ]

@@ -19,7 +19,7 @@ import ElmTestRunner.Vendor.ConsoleText as Text exposing (Text, UseColor)
 import ElmTestRunner.Vendor.FormatColor as FormatColor
 import ElmTestRunner.Vendor.FormatMonochrome as FormatMonochrome
 import Json.Encode as Encode exposing (Value)
-import Test.Coverage exposing (CoverageReport)
+import Test.Distribution exposing (DistributionReport)
 
 
 {-| Implementation of a reporter for exercism, mostly for automated tools.
@@ -121,7 +121,7 @@ toExercismResult testResult =
             , output = Nothing
             }
 
-        TestResult.Failed { labels, failures, todos, logs, coverageReports } ->
+        TestResult.Failed { labels, failures, todos, logs, distributionReports } ->
             { name = extractTestName labels
             , taskId = extractTaskId labels
             , status = "fail"

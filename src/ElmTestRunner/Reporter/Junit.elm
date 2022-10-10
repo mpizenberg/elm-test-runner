@@ -16,7 +16,7 @@ import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Result as TestResult exposing (TestResult)
 import ElmTestRunner.SeededRunners exposing (Kind(..))
 import ElmTestRunner.Vendor.XmlEncode as Encode exposing (Value)
-import Test.Coverage exposing (CoverageReport)
+import Test.Distribution exposing (DistributionReport)
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
@@ -115,7 +115,7 @@ encodeTestResult result =
                 TestResult.Failed test ->
                     { labels = test.labels
                     , duration = test.duration
-                    , failures = encodeFailures test.failures test.coverageReports test.todos
+                    , failures = encodeFailures test.failures test.distributionReports test.todos
                     , logs = test.logs
                     }
 
@@ -155,31 +155,31 @@ classAndName labels =
             ( String.join " > " (List.reverse classLabels), name )
 
 
-coverageReportToString : CoverageReport -> Maybe String
-coverageReportToString coverageReport =
-    case coverageReport of
-        Test.Coverage.NoCoverage ->
+distributionReportToString : DistributionReport -> Maybe String
+distributionReportToString distributionReport =
+    case distributionReport of
+        Test.Distribution.NoDistribution ->
             Nothing
 
-        Test.Coverage.CoverageToReport r ->
-            Just (Test.Coverage.coverageReportTable r)
+        Test.Distribution.DistributionToReport r ->
+            Just (Test.Distribution.distributionReportTable r)
 
-        Test.Coverage.CoverageCheckSucceeded _ ->
+        Test.Distribution.DistributionCheckSucceeded _ ->
             {- Not reporting the table to the JUnit stdout (similarly to the
                Console reporter) although the data is technically there.
                We keep the full data dump for the JSON reporter.
             -}
             Nothing
 
-        Test.Coverage.CoverageCheckFailed r ->
-            Just (Test.Coverage.coverageReportTable r)
+        Test.Distribution.DistributionCheckFailed r ->
+            Just (Test.Distribution.distributionReportTable r)
 
 
 {-| See spec for "failure" here:
 <https://github.com/windyroad/JUnit-Schema/blob/master/JUnit.xsd>
 -}
-encodeFailures : List Failure -> List CoverageReport -> List String -> Encode.Value
-encodeFailures failures coverageReports todos =
+encodeFailures : List Failure -> List DistributionReport -> List String -> Encode.Value
+encodeFailures failures distributionReports todos =
     let
         message : String
         message =
@@ -193,7 +193,7 @@ encodeFailures failures coverageReports todos =
 
         stdout : Maybe String
         stdout =
-            case List.filterMap coverageReportToString coverageReports of
+            case List.filterMap distributionReportToString distributionReports of
                 [] ->
                     Nothing
 
@@ -204,7 +204,7 @@ encodeFailures failures coverageReports todos =
             [ -- The message specified in the assert.
               Just ( "message", Encode.string message )
 
-            -- stdout - currently used for coverage reports
+            -- stdout - currently used for distribution reports
             , stdout |> Maybe.map (\out -> ( "system-out", Encode.string out ))
 
             -- The type of the assert.

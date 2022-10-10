@@ -13,7 +13,7 @@ import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Result as TestResult exposing (TestResult(..))
 import ElmTestRunner.SeededRunners exposing (Kind(..))
 import Json.Encode as Encode
-import Test.Coverage exposing (CoverageReport(..))
+import Test.Distribution exposing (DistributionReport(..))
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
@@ -47,22 +47,22 @@ onBegin { seed, fuzzRuns, globs, paths } testsCount =
 onResult : TestResult -> Maybe String
 onResult result =
     let
-        { status, testLabels, testFailures, testCoverageReports, testDuration } =
+        { status, testLabels, testFailures, testDistributionReports, testDuration } =
             case result of
-                Passed { labels, duration, coverageReports } ->
+                Passed { labels, duration, distributionReports } ->
                     { status = "pass"
                     , testLabels = List.reverse labels
                     , testFailures = Encode.list Encode.string []
-                    , testCoverageReports = Encode.list encodeCoverageReport coverageReports
+                    , testDistributionReports = Encode.list encodeDistributionReport distributionReports
                     , testDuration = duration
                     }
 
-                Failed { labels, duration, todos, failures, coverageReports } ->
+                Failed { labels, duration, todos, failures, distributionReports } ->
                     if not (List.isEmpty todos) then
                         { status = "todo"
                         , testLabels = List.reverse labels
                         , testFailures = Encode.list Encode.string todos
-                        , testCoverageReports = Encode.list identity []
+                        , testDistributionReports = Encode.list identity []
                         , testDuration = duration
                         }
 
@@ -70,7 +70,7 @@ onResult result =
                         { status = "fail"
                         , testLabels = List.reverse labels
                         , testFailures = Encode.list encodeFailure failures
-                        , testCoverageReports = Encode.list encodeCoverageReport coverageReports
+                        , testDistributionReports = Encode.list encodeDistributionReport distributionReports
                         , testDuration = duration
                         }
     in
@@ -81,7 +81,7 @@ onResult result =
                 , ( "status", Encode.string status )
                 , ( "labels", Encode.list Encode.string testLabels )
                 , ( "failures", testFailures )
-                , ( "coverageReports", testCoverageReports )
+                , ( "distributionReports", testDistributionReports )
                 , ( "duration", Encode.string (String.fromFloat testDuration) )
                 ]
         )
@@ -196,36 +196,36 @@ encodeReason description reason =
                 |> encodeReasonType "CollectionDiff"
 
 
-encodeCoverageReport : CoverageReport -> Encode.Value
-encodeCoverageReport coverageReport =
-    case coverageReport of
-        NoCoverage ->
+encodeDistributionReport : DistributionReport -> Encode.Value
+encodeDistributionReport distributionReport =
+    case distributionReport of
+        NoDistribution ->
             Encode.null
-                |> encodeSumType "NoCoverage"
+                |> encodeSumType "NoDistribution"
 
-        CoverageToReport r ->
-            [ ( "coverageCount", encodeCoverageCount r.coverageCount )
+        DistributionToReport r ->
+            [ ( "distributionCount", encodeDistributionCount r.distributionCount )
             , ( "runsElapsed", Encode.int r.runsElapsed )
             ]
                 |> Encode.object
-                |> encodeSumType "CoverageToReport"
+                |> encodeSumType "DistributionToReport"
 
-        CoverageCheckSucceeded r ->
-            [ ( "coverageCount", encodeCoverageCount r.coverageCount )
+        DistributionCheckSucceeded r ->
+            [ ( "distributionCount", encodeDistributionCount r.distributionCount )
             , ( "runsElapsed", Encode.int r.runsElapsed )
             ]
                 |> Encode.object
-                |> encodeSumType "CoverageCheckSucceeded"
+                |> encodeSumType "DistributionCheckSucceeded"
 
-        CoverageCheckFailed r ->
-            [ ( "coverageCount", encodeCoverageCount r.coverageCount )
+        DistributionCheckFailed r ->
+            [ ( "distributionCount", encodeDistributionCount r.distributionCount )
             , ( "runsElapsed", Encode.int r.runsElapsed )
             , ( "badLabel", Encode.string r.badLabel )
             , ( "badLabelPercentage", Encode.float r.badLabelPercentage )
-            , ( "expectedCoverage", Encode.string r.expectedCoverage )
+            , ( "expectedDistribution", Encode.string r.expectedDistribution )
             ]
                 |> Encode.object
-                |> encodeSumType "CoverageCheckFailed"
+                |> encodeSumType "DistributionCheckFailed"
 
 
 encodeSumType : String -> Encode.Value -> Encode.Value
@@ -236,8 +236,8 @@ encodeSumType sumType data =
         ]
 
 
-encodeCoverageCount : Dict (List String) Int -> Encode.Value
-encodeCoverageCount dict =
+encodeDistributionCount : Dict (List String) Int -> Encode.Value
+encodeDistributionCount dict =
     dict
         |> Dict.toList
         |> Encode.list

@@ -57,8 +57,8 @@ encode =
 --     | InvalidFuzzer
 --     | BadDescription
 --     | DuplicatedName
---     | CoverageInsufficient
---     | CoverageBug
+--     | DistributionInsufficient
+--     | DistributionBug
 
 
 type alias Record_expected_String_actual_String_extra_ListString_missing_ListString_ =
@@ -94,11 +94,11 @@ decodeInvalidReason =
                 "DuplicatedName" ->
                     Decode.succeed DuplicatedName
 
-                "CoverageInsufficient" ->
-                    Decode.succeed CoverageInsufficient
+                "DistributionInsufficient" ->
+                    Decode.succeed DistributionInsufficient
 
-                "CoverageBug" ->
-                    Decode.succeed CoverageBug
+                "DistributionBug" ->
+                    Decode.succeed DistributionBug
 
                 other ->
                     Decode.fail <| "Unknown constructor for type InvalidReason: " ++ other
@@ -188,11 +188,11 @@ encodeInvalidReason a =
             DuplicatedName ->
                 "DuplicatedName"
 
-            CoverageInsufficient ->
-                "CoverageInsufficient"
+            DistributionInsufficient ->
+                "DistributionInsufficient"
 
-            CoverageBug ->
-                "CoverageBug"
+            DistributionBug ->
+                "DistributionBug"
 
 
 encodeMaybe f a =

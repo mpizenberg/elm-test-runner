@@ -16,7 +16,7 @@ import ElmTestRunner.Vendor.ConsoleFormat exposing (format)
 import ElmTestRunner.Vendor.ConsoleText as Text exposing (Text, UseColor, dark, green, plain, red, underline, yellow)
 import ElmTestRunner.Vendor.FormatColor as FormatColor
 import ElmTestRunner.Vendor.FormatMonochrome as FormatMonochrome
-import Test.Coverage exposing (CoverageReport)
+import Test.Distribution exposing (DistributionReport)
 import Test.Runner exposing (formatLabels)
 
 
@@ -56,19 +56,19 @@ run elm-test-rs with --seed {{ seed }} and --fuzz {{ fuzzRuns }}
 onResult : UseColor -> TestResult -> Maybe Text
 onResult useColor testResult =
     case testResult of
-        Passed { labels, coverageReports } ->
+        Passed { labels, distributionReports } ->
             let
-                successCoverageReports : List String
-                successCoverageReports =
-                    List.filterMap coverageReportToString coverageReports
+                successDistributionReports : List String
+                successDistributionReports =
+                    List.filterMap distributionReportToString distributionReports
             in
-            if List.isEmpty successCoverageReports then
+            if List.isEmpty successDistributionReports then
                 Nothing
 
             else
                 [ successLabelsToText labels
                 , plain "\n"
-                , successCoverageReports
+                , successDistributionReports
                     |> String.join "\n\n\n"
                     |> indent
                     |> plain
@@ -78,12 +78,12 @@ onResult useColor testResult =
                     |> Text.concat
                     |> Just
 
-        Failed { labels, todos, failures, logs, coverageReports } ->
+        Failed { labels, todos, failures, logs, distributionReports } ->
             if List.isEmpty todos then
                 -- We have non-TODOs still failing; report them, not the TODOs.
                 List.concat
                     [ [ failureLabelsToText labels ]
-                    , List.map2 (failureToText useColor) failures coverageReports
+                    , List.map2 (failureToText useColor) failures distributionReports
                     , [ logsToText logs ]
                     ]
                     |> Text.concat
@@ -116,28 +116,28 @@ successLabelsToText =
     formatLabels (dark << plain << withChar '↓') (green << withChar '✓') >> Text.concat
 
 
-coverageReportToString : CoverageReport -> Maybe String
-coverageReportToString coverageReport =
-    case coverageReport of
-        Test.Coverage.NoCoverage ->
+distributionReportToString : DistributionReport -> Maybe String
+distributionReportToString distributionReport =
+    case distributionReport of
+        Test.Distribution.NoDistribution ->
             Nothing
 
-        Test.Coverage.CoverageToReport r ->
-            Just (Test.Coverage.coverageReportTable r)
+        Test.Distribution.DistributionToReport r ->
+            Just (Test.Distribution.distributionReportTable r)
 
-        Test.Coverage.CoverageCheckSucceeded _ ->
+        Test.Distribution.DistributionCheckSucceeded _ ->
             {- Not reporting the table to the Console.Color stdout (similarly to
                the Console reporter) although the data is technically there.
                We keep the full data dump for the JSON reporter.
             -}
             Nothing
 
-        Test.Coverage.CoverageCheckFailed r ->
-            Just (Test.Coverage.coverageReportTable r)
+        Test.Distribution.DistributionCheckFailed r ->
+            Just (Test.Distribution.distributionReportTable r)
 
 
-failureToText : UseColor -> Failure -> CoverageReport -> Text
-failureToText useColor { given, description, reason } coverageReport =
+failureToText : UseColor -> Failure -> DistributionReport -> Text
+failureToText useColor { given, description, reason } distributionReport =
     let
         formatEquality =
             case useColor of
@@ -150,8 +150,8 @@ failureToText useColor { given, description, reason } coverageReport =
         messageText =
             plain ("\n" ++ indent (format formatEquality description reason) ++ "\n\n")
     in
-    [ coverageReport
-        |> coverageReportToString
+    [ distributionReport
+        |> distributionReportToString
         |> Maybe.map
             (\s ->
                 ("\n" ++ s ++ "\n")
