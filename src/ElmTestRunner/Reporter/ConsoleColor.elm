@@ -16,6 +16,7 @@ import ElmTestRunner.Vendor.ConsoleFormat exposing (format)
 import ElmTestRunner.Vendor.ConsoleText as Text exposing (Text, UseColor, dark, green, plain, red, underline, yellow)
 import ElmTestRunner.Vendor.FormatColor as FormatColor
 import ElmTestRunner.Vendor.FormatMonochrome as FormatMonochrome
+import Test.Distribution exposing (DistributionReport)
 import Test.Runner exposing (formatLabels)
 
 
@@ -55,15 +56,34 @@ run elm-test-rs with --seed {{ seed }} and --fuzz {{ fuzzRuns }}
 onResult : UseColor -> TestResult -> Maybe Text
 onResult useColor testResult =
     case testResult of
-        Passed _ ->
-            Nothing
+        Passed { labels, distributionReports } ->
+            let
+                successDistributionReports : List String
+                successDistributionReports =
+                    List.filterMap distributionReportToString distributionReports
+            in
+            if List.isEmpty successDistributionReports then
+                Nothing
 
-        Failed { labels, todos, failures, logs } ->
+            else
+                [ successLabelsToText labels
+                , plain "\n"
+                , successDistributionReports
+                    |> String.join "\n\n\n"
+                    |> indent
+                    |> plain
+                    |> dark
+                , plain "\n\n"
+                ]
+                    |> Text.concat
+                    |> Just
+
+        Failed { labels, todos, failures, logs, distributionReports } ->
             if List.isEmpty todos then
                 -- We have non-TODOs still failing; report them, not the TODOs.
                 List.concat
                     [ [ failureLabelsToText labels ]
-                    , List.map (failureToText useColor) failures
+                    , List.map2 (failureToText useColor) failures distributionReports
                     , [ logsToText logs ]
                     ]
                     |> Text.concat
@@ -91,8 +111,33 @@ failureLabelsToText =
     formatLabels (dark << plain << withChar '↓') (red << withChar '✗') >> Text.concat
 
 
-failureToText : UseColor -> Failure -> Text
-failureToText useColor { given, description, reason } =
+successLabelsToText : List String -> Text
+successLabelsToText =
+    formatLabels (dark << plain << withChar '↓') (green << withChar '✓') >> Text.concat
+
+
+distributionReportToString : DistributionReport -> Maybe String
+distributionReportToString distributionReport =
+    case distributionReport of
+        Test.Distribution.NoDistribution ->
+            Nothing
+
+        Test.Distribution.DistributionToReport r ->
+            Just (Test.Distribution.distributionReportTable r)
+
+        Test.Distribution.DistributionCheckSucceeded _ ->
+            {- Not reporting the table to the Console.Color stdout (similarly to
+               the Console reporter) although the data is technically there.
+               We keep the full data dump for the JSON reporter.
+            -}
+            Nothing
+
+        Test.Distribution.DistributionCheckFailed r ->
+            Just (Test.Distribution.distributionReportTable r)
+
+
+failureToText : UseColor -> Failure -> DistributionReport -> Text
+failureToText useColor { given, description, reason } distributionReport =
     let
         formatEquality =
             case useColor of
@@ -105,15 +150,20 @@ failureToText useColor { given, description, reason } =
         messageText =
             plain ("\n" ++ indent (format formatEquality description reason) ++ "\n\n")
     in
-    case given of
-        Nothing ->
-            messageText
-
-        Just givenStr ->
-            [ dark (plain ("\nGiven " ++ givenStr ++ "\n"))
-            , messageText
-            ]
-                |> Text.concat
+    [ distributionReport
+        |> distributionReportToString
+        |> Maybe.map
+            (\s ->
+                ("\n" ++ s ++ "\n")
+                    |> indent
+                    |> plain
+                    |> dark
+            )
+    , given |> Maybe.map (\str -> dark (plain ("\nGiven " ++ str ++ "\n")))
+    , Just messageText
+    ]
+        |> List.filterMap identity
+        |> Text.concat
 
 
 indent : String -> String

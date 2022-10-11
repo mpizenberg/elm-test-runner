@@ -7,11 +7,13 @@ module ElmTestRunner.Reporter.Json exposing (implementation)
 -}
 
 import Array exposing (Array)
+import Dict exposing (Dict)
 import ElmTestRunner.Failure exposing (Failure)
 import ElmTestRunner.Reporter.Interface exposing (Interface)
 import ElmTestRunner.Result as TestResult exposing (TestResult(..))
 import ElmTestRunner.SeededRunners exposing (Kind(..))
 import Json.Encode as Encode
+import Test.Distribution exposing (DistributionReport(..))
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
@@ -45,27 +47,30 @@ onBegin { seed, fuzzRuns, globs, paths } testsCount =
 onResult : TestResult -> Maybe String
 onResult result =
     let
-        { status, testLabels, testFailures, testDuration } =
+        { status, testLabels, testFailures, testDistributionReports, testDuration } =
             case result of
-                Passed { labels, duration } ->
+                Passed { labels, duration, distributionReports } ->
                     { status = "pass"
                     , testLabels = List.reverse labels
                     , testFailures = Encode.list Encode.string []
+                    , testDistributionReports = Encode.list encodeDistributionReport distributionReports
                     , testDuration = duration
                     }
 
-                Failed { labels, duration, todos, failures } ->
+                Failed { labels, duration, todos, failures, distributionReports } ->
                     if not (List.isEmpty todos) then
                         { status = "todo"
                         , testLabels = List.reverse labels
                         , testFailures = Encode.list Encode.string todos
+                        , testDistributionReports = Encode.list identity []
                         , testDuration = duration
                         }
 
                     else
                         { status = "fail"
                         , testLabels = List.reverse labels
-                        , testFailures = Encode.list jsonEncodeFailure failures
+                        , testFailures = Encode.list encodeFailure failures
+                        , testDistributionReports = Encode.list encodeDistributionReport distributionReports
                         , testDuration = duration
                         }
     in
@@ -76,6 +81,7 @@ onResult result =
                 , ( "status", Encode.string status )
                 , ( "labels", Encode.list Encode.string testLabels )
                 , ( "failures", testFailures )
+                , ( "distributionReports", testDistributionReports )
                 , ( "duration", Encode.string (String.fromFloat testDuration) )
                 ]
         )
@@ -115,8 +121,8 @@ onEnd kind results =
             ++ "\n"
 
 
-jsonEncodeFailure : Failure -> Encode.Value
-jsonEncodeFailure { given, description, reason } =
+encodeFailure : Failure -> Encode.Value
+encodeFailure { given, description, reason } =
     Encode.object
         [ ( "given", Maybe.withDefault Encode.null (Maybe.map Encode.string given) )
         , ( "message", Encode.string description )
@@ -188,3 +194,56 @@ encodeReason description reason =
             ]
                 |> Encode.object
                 |> encodeReasonType "CollectionDiff"
+
+
+encodeDistributionReport : DistributionReport -> Encode.Value
+encodeDistributionReport distributionReport =
+    case distributionReport of
+        NoDistribution ->
+            Encode.null
+                |> encodeSumType "NoDistribution"
+
+        DistributionToReport r ->
+            [ ( "distributionCount", encodeDistributionCount r.distributionCount )
+            , ( "runsElapsed", Encode.int r.runsElapsed )
+            ]
+                |> Encode.object
+                |> encodeSumType "DistributionToReport"
+
+        DistributionCheckSucceeded r ->
+            [ ( "distributionCount", encodeDistributionCount r.distributionCount )
+            , ( "runsElapsed", Encode.int r.runsElapsed )
+            ]
+                |> Encode.object
+                |> encodeSumType "DistributionCheckSucceeded"
+
+        DistributionCheckFailed r ->
+            [ ( "distributionCount", encodeDistributionCount r.distributionCount )
+            , ( "runsElapsed", Encode.int r.runsElapsed )
+            , ( "badLabel", Encode.string r.badLabel )
+            , ( "badLabelPercentage", Encode.float r.badLabelPercentage )
+            , ( "expectedDistribution", Encode.string r.expectedDistribution )
+            ]
+                |> Encode.object
+                |> encodeSumType "DistributionCheckFailed"
+
+
+encodeSumType : String -> Encode.Value -> Encode.Value
+encodeSumType sumType data =
+    Encode.object
+        [ ( "type", Encode.string sumType )
+        , ( "data", data )
+        ]
+
+
+encodeDistributionCount : Dict (List String) Int -> Encode.Value
+encodeDistributionCount dict =
+    dict
+        |> Dict.toList
+        |> Encode.list
+            (\( labels, count ) ->
+                Encode.object
+                    [ ( "labels", Encode.list Encode.string labels )
+                    , ( "count", Encode.int count )
+                    ]
+            )

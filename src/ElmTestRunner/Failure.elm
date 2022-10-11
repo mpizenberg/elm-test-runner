@@ -35,32 +35,6 @@ encode =
 
 
 
--- Functions needed by the auto-generated decoders and encoders.
-
-
-toString =
-    invalidReasonToString
-
-
-invalidReasonToString reason =
-    case reason of
-        EmptyList ->
-            "EmptyList"
-
-        NonpositiveFuzzCount ->
-            "NonpositiveFuzzCount"
-
-        InvalidFuzzer ->
-            "InvalidFuzzer"
-
-        BadDescription ->
-            "BadDescription"
-
-        DuplicatedName ->
-            "DuplicatedName"
-
-
-
 -- Generated decoders and encoders thanks to (https://dkodaj.github.io/decgen/)
 --
 -- type Reason
@@ -83,12 +57,15 @@ invalidReasonToString reason =
 --     | InvalidFuzzer
 --     | BadDescription
 --     | DuplicatedName
+--     | DistributionInsufficient
+--     | DistributionBug
 
 
 type alias Record_expected_String_actual_String_extra_ListString_missing_ListString_ =
     { expected : String, actual : String, extra : List String, missing : List String }
 
 
+decodeFailure : Decoder Failure
 decodeFailure =
     Decode.map3
         Failure
@@ -97,6 +74,7 @@ decodeFailure =
         (Decode.field "reason" decodeReason)
 
 
+decodeInvalidReason : Decoder InvalidReason
 decodeInvalidReason =
     let
         recover x =
@@ -116,12 +94,19 @@ decodeInvalidReason =
                 "DuplicatedName" ->
                     Decode.succeed DuplicatedName
 
+                "DistributionInsufficient" ->
+                    Decode.succeed DistributionInsufficient
+
+                "DistributionBug" ->
+                    Decode.succeed DistributionBug
+
                 other ->
                     Decode.fail <| "Unknown constructor for type InvalidReason: " ++ other
     in
     Decode.string |> Decode.andThen recover
 
 
+decodeReason : Decoder Reason
 decodeReason =
     Decode.field "Constructor" Decode.string |> Decode.andThen decodeReasonHelp
 
@@ -175,6 +160,7 @@ decodeRecord_expected_String_actual_String_extra_ListString_missing_ListString_ 
         (Decode.field "missing" (Decode.list Decode.string))
 
 
+encodeFailure : Failure -> Value
 encodeFailure a =
     Encode.object
         [ ( "given", encodeMaybe Encode.string a.given )
@@ -183,8 +169,30 @@ encodeFailure a =
         ]
 
 
+encodeInvalidReason : InvalidReason -> Value
 encodeInvalidReason a =
-    Encode.string <| toString a
+    Encode.string <|
+        case a of
+            EmptyList ->
+                "EmptyList"
+
+            NonpositiveFuzzCount ->
+                "NonpositiveFuzzCount"
+
+            InvalidFuzzer ->
+                "InvalidFuzzer"
+
+            BadDescription ->
+                "BadDescription"
+
+            DuplicatedName ->
+                "DuplicatedName"
+
+            DistributionInsufficient ->
+                "DistributionInsufficient"
+
+            DistributionBug ->
+                "DistributionBug"
 
 
 encodeMaybe f a =
@@ -196,6 +204,7 @@ encodeMaybe f a =
             Encode.null
 
 
+encodeReason : Reason -> Value
 encodeReason a =
     case a of
         Custom ->
