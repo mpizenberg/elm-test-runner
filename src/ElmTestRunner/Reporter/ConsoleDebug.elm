@@ -27,9 +27,14 @@ implementation options =
 
 onBegin : { seed : Int, fuzzRuns : Int } -> Int -> Maybe String
 onBegin { seed, fuzzRuns } testsCount =
-    "Running "
-        ++ String.fromInt testsCount
-        ++ " tests. To reproduce these results later, run:\nelm-test-rs --seed "
+    (if testsCount == 1 then
+        "Running 1 test. To reproduce these results later, run:\nelm-test-rs --seed "
+
+     else
+        "Running "
+            ++ String.fromInt testsCount
+            ++ " tests. To reproduce these results later, run:\nelm-test-rs --seed "
+    )
         ++ String.fromInt seed
         ++ " --fuzz "
         ++ String.fromInt fuzzRuns
