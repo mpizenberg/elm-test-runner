@@ -35,14 +35,17 @@ implementation useColor options =
 -}
 onBegin : { seed : Int, fuzzRuns : Int, verbosity : Int } -> Int -> Maybe Text
 onBegin { seed, fuzzRuns } testsCount =
-    """
-Running {{ testsCount }} tests. To reproduce these results later,
-run elm-test-rs with --seed {{ seed }} and --fuzz {{ fuzzRuns }}
+    (if testsCount == 1 then
+        "Running 1 test. To reproduce these results later, run:\nelm-test-rs --seed "
 
-"""
-        |> String.replace "{{ testsCount }}" (String.fromInt testsCount)
-        |> String.replace "{{ seed }}" (String.fromInt seed)
-        |> String.replace "{{ fuzzRuns }}" (String.fromInt fuzzRuns)
+     else
+        "Running "
+            ++ String.fromInt testsCount
+            ++ " tests. To reproduce these results later, run:\nelm-test-rs --seed "
+    )
+        ++ String.fromInt seed
+        ++ " --fuzz "
+        ++ String.fromInt fuzzRuns
         |> plain
         |> Just
 
