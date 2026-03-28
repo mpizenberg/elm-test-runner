@@ -81,7 +81,20 @@ type BugReport
 -}
 diff : List a -> List a -> List (Change a)
 diff a b =
-    case testDiff a b of
+    diffWithMaxEdits maxEditsDefault a b
+
+
+{-| Maximum number of edits (P in the O(NP) algorithm) before bailing out.
+This prevents O(N²) blowups on large, very dissimilar inputs.
+-}
+maxEditsDefault : Int
+maxEditsDefault =
+    200
+
+
+diffWithMaxEdits : Int -> List a -> List a -> List (Change a)
+diffWithMaxEdits maxEdits a b =
+    case testDiff maxEdits a b of
         Ok changes ->
             changes
 
@@ -92,8 +105,8 @@ diff a b =
 {-| Test the algolithm itself.
 If it returns Err, it should be a bug.
 -}
-testDiff : List a -> List a -> Result BugReport (List (Change a))
-testDiff a b =
+testDiff : Int -> List a -> List a -> Result BugReport (List (Change a))
+testDiff maxEdits a b =
     let
         arrA =
             Array.fromList a
@@ -116,9 +129,7 @@ testDiff a b =
             \y -> Array.get (y - 1) arrB
 
         path =
-            -- Is there any case ond is needed?
-            -- ond getA getB m n
-            onp getA getB m n
+            onp maxEdits getA getB m n
     in
     makeChanges getA getB path
 
@@ -191,8 +202,8 @@ makeChangesHelp changes getA getB ( x, y ) path =
 -- Wu's O(NP) algorithm (http://myerslab.mpi-cbg.de/wp-content/uploads/2014/06/np_diff.pdf)
 
 
-onp : (Int -> Maybe a) -> (Int -> Maybe a) -> Int -> Int -> List ( Int, Int )
-onp getA getB m n =
+onp : Int -> (Int -> Maybe a) -> (Int -> Maybe a) -> Int -> Int -> List ( Int, Int )
+onp maxEdits getA getB m n =
     let
         v =
             Array.initialize (m + n + 1) (always [])
@@ -200,33 +211,39 @@ onp getA getB m n =
         delta =
             n - m
     in
-    onpLoopP (snake getA getB) delta m 0 v
+    onpLoopP maxEdits (snake getA getB) delta m 0 v
 
 
 onpLoopP :
-    (Int -> Int -> List ( Int, Int ) -> ( List ( Int, Int ), Bool ))
+    Int
+    -> (Int -> Int -> List ( Int, Int ) -> ( List ( Int, Int ), Bool ))
     -> Int
     -> Int
     -> Int
     -> Array (List ( Int, Int ))
     -> List ( Int, Int )
-onpLoopP snake_ delta offset p v =
-    let
-        ks =
-            if delta > 0 then
-                List.reverse (List.range (delta + 1) (delta + p))
-                    ++ List.range -p delta
+onpLoopP maxEdits snake_ delta offset p v =
+    if p > maxEdits then
+        -- Too many edits; bail out to avoid O(N²) blowup.
+        []
 
-            else
-                List.reverse (List.range (delta + 1) p)
-                    ++ List.range (-p + delta) delta
-    in
-    case onpLoopK snake_ offset ks v of
-        Found path ->
-            path
+    else
+        let
+            ks =
+                if delta > 0 then
+                    reversePrepend (List.range (delta + 1) (delta + p))
+                        (List.range -p delta)
 
-        Continue v_ ->
-            onpLoopP snake_ delta offset (p + 1) v_
+                else
+                    reversePrepend (List.range (delta + 1) p)
+                        (List.range (-p + delta) delta)
+        in
+        case onpLoopK snake_ offset ks v of
+            Found path ->
+                path
+
+            Continue v_ ->
+                onpLoopP maxEdits snake_ delta offset (p + 1) v_
 
 
 onpLoopK :
@@ -319,3 +336,16 @@ snake getA getB nextX nextY path =
 
         _ ->
             ( path, False )
+
+
+{-| Prepend elements from the first list onto the second, in reverse order.
+Equivalent to `List.reverse xs ++ ys` but in a single pass.
+-}
+reversePrepend : List a -> List a -> List a
+reversePrepend xs ys =
+    case xs of
+        [] ->
+            ys
+
+        x :: rest ->
+            reversePrepend rest (x :: ys)
