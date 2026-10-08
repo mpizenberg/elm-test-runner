@@ -1,5 +1,5 @@
 module ElmTestRunner.Result exposing
-    ( TestResult(..), fromExpectations, setDuration, setLogs, encode, decoder
+    ( TestResult(..), setDuration, setLogs, encode, decoder
     , Summary, summary
     )
 
@@ -8,7 +8,7 @@ module ElmTestRunner.Result exposing
 
 # Manipulation of the result of a test run
 
-@docs TestResult, fromExpectations, setDuration, setLogs, encode, decoder
+@docs TestResult, setDuration, setLogs, encode, decoder
 
 
 # Helper functions
@@ -20,11 +20,9 @@ module ElmTestRunner.Result exposing
 import Array exposing (Array)
 import Dict exposing (Dict)
 import ElmTestRunner.Failure as Failure exposing (Failure)
-import Expect exposing (Expectation)
 import Json.Decode as Decode exposing (Decoder, Value)
 import Json.Encode as Encode
 import Test.Distribution exposing (DistributionReport(..))
-import Test.Runner
 
 
 {-| Type summarizing the results of a test run.
@@ -34,13 +32,13 @@ type TestResult
     = Passed
         { labels : List String
         , duration : Float
-        , logs : List String
+        , logs : String
         , distributionReports : List DistributionReport
         }
     | Failed
         { labels : List String
         , duration : Float
-        , logs : List String
+        , logs : String
         , todos : List String
         , failures : List Failure
         , distributionReports : List DistributionReport
@@ -73,7 +71,7 @@ setDuration duration testResult =
 
 {-| Set the logs received for that test.
 -}
-setLogs : List String -> TestResult -> TestResult
+setLogs : String -> TestResult -> TestResult
 setLogs logs testResult =
     case testResult of
         Passed { labels, duration, distributionReports } ->
@@ -92,77 +90,6 @@ setLogs logs testResult =
                 , todos = todos
                 , failures = failures
                 , distributionReports = distributionReports
-                }
-
-
-{-| Convert a list of expectations (results of a run) into a `TestResult`.
-Return the `Failed` variant if there is any todo or failure in the expectations.
--}
-fromExpectations : List String -> List Expectation -> TestResult
-fromExpectations labels expectations =
-    let
-        outcomes : Outcomes
-        outcomes =
-            getOutcomes expectations
-    in
-    if List.isEmpty outcomes.todos && List.isEmpty outcomes.failures then
-        Passed
-            { labels = labels
-            , duration = 0
-            , logs = []
-            , distributionReports = outcomes.distributionReports
-            }
-
-    else
-        Failed
-            { labels = labels
-            , duration = 0
-            , logs = []
-            , todos = outcomes.todos
-            , failures = outcomes.failures
-            , distributionReports = outcomes.distributionReports
-            }
-
-
-type alias Outcomes =
-    { todos : List String
-    , failures : List Failure
-    , distributionReports : List DistributionReport
-    }
-
-
-initOutcomes : Outcomes
-initOutcomes =
-    { todos = []
-    , failures = []
-    , distributionReports = []
-    }
-
-
-getOutcomes : List Expectation -> Outcomes
-getOutcomes expectations =
-    List.foldl accumOutcomes initOutcomes expectations
-
-
-accumOutcomes : Expectation -> Outcomes -> Outcomes
-accumOutcomes expectation outcomes =
-    let
-        distributionReport : DistributionReport
-        distributionReport =
-            Test.Runner.getDistributionReport expectation
-    in
-    case Test.Runner.getFailureReason expectation of
-        Nothing ->
-            { outcomes | distributionReports = distributionReport :: outcomes.distributionReports }
-
-        Just failure ->
-            if Test.Runner.isTodo expectation then
-                { outcomes | todos = failure.description :: outcomes.todos }
-
-            else
-                { outcomes
-                    | failures = failure :: outcomes.failures
-                    , distributionReports = distributionReport :: outcomes.distributionReports
                 }
 
 
@@ -250,16 +177,24 @@ type alias Record_distributionCount_Dict_ListString_Int_runsElapsed_Int_ =
     { distributionCount : Dict (List String) Int, runsElapsed : Int }
 
 
-type alias Record_expected_String_actual_String_extra_ListString_missing_ListString_ =
-    { expected : String, actual : String, extra : List String, missing : List String }
+type alias Record_labels_ListString_duration_Float_logs_String_todos_ListString_failures_ListFailure_distributionReports_ListDistributionReport_ =
+    { labels : List String, duration : Float, logs : String, todos : List String, failures : List Failure, distributionReports : List DistributionReport }
 
 
-type alias Record_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_distributionReports_ListDistributionReport_ =
-    { labels : List String, duration : Float, logs : List String, todos : List String, failures : List Failure, distributionReports : List DistributionReport }
+type alias Record_labels_ListString_duration_Float_logs_String_distributionReports_ListDistributionReport_ =
+    { labels : List String, duration : Float, logs : String, distributionReports : List DistributionReport }
 
 
-type alias Record_labels_ListString_duration_Float_logs_ListString_distributionReports_ListDistributionReport_ =
-    { labels : List String, duration : Float, logs : List String, distributionReports : List DistributionReport }
+decodeDict_ListString_Int : Decoder (Dict (List String) Int)
+decodeDict_ListString_Int =
+    let
+        decodeDict_ListString_IntTuple =
+            Decode.map2
+                (\a1 a2 -> ( a1, a2 ))
+                (Decode.field "A1" (Decode.list Decode.string))
+                (Decode.field "A2" Decode.int)
+    in
+    Decode.map Dict.fromList (Decode.list decodeDict_ListString_IntTuple)
 
 
 decodeDistributionReport : Decoder DistributionReport
@@ -270,7 +205,7 @@ decodeDistributionReport =
 decodeDistributionReportHelp constructor =
     case constructor of
         "NoDistribution" ->
-            Decode.succeed NoDistribution
+            Decode.succeed (NoDistribution ())
 
         "DistributionToReport" ->
             Decode.map
@@ -291,18 +226,6 @@ decodeDistributionReportHelp constructor =
             Decode.fail <| "Unknown constructor for type DistributionReport: " ++ other
 
 
-decodeDict_ListString_Int : Decoder (Dict (List String) Int)
-decodeDict_ListString_Int =
-    let
-        decodeDict_ListString_IntTuple =
-            Decode.map2
-                (\a1 a2 -> ( a1, a2 ))
-                (Decode.field "A1" (Decode.list Decode.string))
-                (Decode.field "A2" Decode.int)
-    in
-    Decode.map Dict.fromList (Decode.list decodeDict_ListString_IntTuple)
-
-
 decodeRecord_distributionCount_Dict_ListString_Int_runsElapsed_Int_ =
     Decode.map2
         Record_distributionCount_Dict_ListString_Int_runsElapsed_Int_
@@ -320,30 +243,21 @@ decodeRecord_distributionCount_Dict_ListString_Int_runsElapsed_Int_badLabel_Stri
         (Decode.field "expectedDistribution" Decode.string)
 
 
-decodeRecord_expected_String_actual_String_extra_ListString_missing_ListString_ =
+decodeRecord_labels_ListString_duration_Float_logs_String_distributionReports_ListDistributionReport_ =
     Decode.map4
-        Record_expected_String_actual_String_extra_ListString_missing_ListString_
-        (Decode.field "expected" Decode.string)
-        (Decode.field "actual" Decode.string)
-        (Decode.field "extra" (Decode.list Decode.string))
-        (Decode.field "missing" (Decode.list Decode.string))
-
-
-decodeRecord_labels_ListString_duration_Float_logs_ListString_distributionReports_ListDistributionReport_ =
-    Decode.map4
-        Record_labels_ListString_duration_Float_logs_ListString_distributionReports_ListDistributionReport_
+        Record_labels_ListString_duration_Float_logs_String_distributionReports_ListDistributionReport_
         (Decode.field "labels" (Decode.list Decode.string))
         (Decode.field "duration" Decode.float)
-        (Decode.field "logs" (Decode.list Decode.string))
+        (Decode.field "logs" Decode.string)
         (Decode.field "distributionReports" (Decode.list decodeDistributionReport))
 
 
-decodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_distributionReports_ListDistributionReport_ =
+decodeRecord_labels_ListString_duration_Float_logs_String_todos_ListString_failures_ListFailure_distributionReports_ListDistributionReport_ =
     Decode.map6
-        Record_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_distributionReports_ListDistributionReport_
+        Record_labels_ListString_duration_Float_logs_String_todos_ListString_failures_ListFailure_distributionReports_ListDistributionReport_
         (Decode.field "labels" (Decode.list Decode.string))
         (Decode.field "duration" Decode.float)
-        (Decode.field "logs" (Decode.list Decode.string))
+        (Decode.field "logs" Decode.string)
         (Decode.field "todos" (Decode.list Decode.string))
         (Decode.field "failures" (Decode.list decodeFailure))
         (Decode.field "distributionReports" (Decode.list decodeDistributionReport))
@@ -359,21 +273,33 @@ decodeTestResultHelp constructor =
         "Passed" ->
             Decode.map
                 Passed
-                (Decode.field "A1" decodeRecord_labels_ListString_duration_Float_logs_ListString_distributionReports_ListDistributionReport_)
+                (Decode.field "A1" decodeRecord_labels_ListString_duration_Float_logs_String_distributionReports_ListDistributionReport_)
 
         "Failed" ->
             Decode.map
                 Failed
-                (Decode.field "A1" decodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_distributionReports_ListDistributionReport_)
+                (Decode.field "A1" decodeRecord_labels_ListString_duration_Float_logs_String_todos_ListString_failures_ListFailure_distributionReports_ListDistributionReport_)
 
         other ->
             Decode.fail <| "Unknown constructor for type TestResult: " ++ other
 
 
+encodeDict_ListString_Int : Dict (List String) Int -> Value
+encodeDict_ListString_Int a =
+    let
+        encodeDict_ListString_IntTuple ( a1, a2 ) =
+            Encode.object
+                [ ( "A1", Encode.list Encode.string a1 )
+                , ( "A2", Encode.int a2 )
+                ]
+    in
+    Encode.list encodeDict_ListString_IntTuple (Dict.toList a)
+
+
 encodeDistributionReport : DistributionReport -> Value
 encodeDistributionReport a =
     case a of
-        NoDistribution ->
+        NoDistribution () ->
             Encode.object
                 [ ( "Constructor", Encode.string "NoDistribution" )
                 ]
@@ -397,18 +323,6 @@ encodeDistributionReport a =
                 ]
 
 
-encodeDict_ListString_Int : Dict (List String) Int -> Value
-encodeDict_ListString_Int a =
-    let
-        encodeDict_ListString_IntTuple ( a1, a2 ) =
-            Encode.object
-                [ ( "A1", Encode.list Encode.string a1 )
-                , ( "A2", Encode.int a2 )
-                ]
-    in
-    Encode.list encodeDict_ListString_IntTuple (Dict.toList a)
-
-
 encodeRecord_distributionCount_Dict_ListString_Int_runsElapsed_Int_ a =
     Encode.object
         [ ( "distributionCount", encodeDict_ListString_Int a.distributionCount )
@@ -426,29 +340,20 @@ encodeRecord_distributionCount_Dict_ListString_Int_runsElapsed_Int_badLabel_Stri
         ]
 
 
-encodeRecord_expected_String_actual_String_extra_ListString_missing_ListString_ a =
-    Encode.object
-        [ ( "expected", Encode.string a.expected )
-        , ( "actual", Encode.string a.actual )
-        , ( "extra", Encode.list Encode.string a.extra )
-        , ( "missing", Encode.list Encode.string a.missing )
-        ]
-
-
-encodeRecord_labels_ListString_duration_Float_logs_ListString_distributionReports_ListDistributionReport_ a =
+encodeRecord_labels_ListString_duration_Float_logs_String_distributionReports_ListDistributionReport_ a =
     Encode.object
         [ ( "labels", Encode.list Encode.string a.labels )
         , ( "duration", Encode.float a.duration )
-        , ( "logs", Encode.list Encode.string a.logs )
+        , ( "logs", Encode.string a.logs )
         , ( "distributionReports", Encode.list encodeDistributionReport a.distributionReports )
         ]
 
 
-encodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_distributionReports_ListDistributionReport_ a =
+encodeRecord_labels_ListString_duration_Float_logs_String_todos_ListString_failures_ListFailure_distributionReports_ListDistributionReport_ a =
     Encode.object
         [ ( "labels", Encode.list Encode.string a.labels )
         , ( "duration", Encode.float a.duration )
-        , ( "logs", Encode.list Encode.string a.logs )
+        , ( "logs", Encode.string a.logs )
         , ( "todos", Encode.list Encode.string a.todos )
         , ( "failures", Encode.list encodeFailure a.failures )
         , ( "distributionReports", Encode.list encodeDistributionReport a.distributionReports )
@@ -461,11 +366,11 @@ encodeTestResult a =
         Passed a1 ->
             Encode.object
                 [ ( "Constructor", Encode.string "Passed" )
-                , ( "A1", encodeRecord_labels_ListString_duration_Float_logs_ListString_distributionReports_ListDistributionReport_ a1 )
+                , ( "A1", encodeRecord_labels_ListString_duration_Float_logs_String_distributionReports_ListDistributionReport_ a1 )
                 ]
 
         Failed a1 ->
             Encode.object
                 [ ( "Constructor", Encode.string "Failed" )
-                , ( "A1", encodeRecord_labels_ListString_duration_Float_logs_ListString_todos_ListString_failures_ListFailure_distributionReports_ListDistributionReport_ a1 )
+                , ( "A1", encodeRecord_labels_ListString_duration_Float_logs_String_todos_ListString_failures_ListFailure_distributionReports_ListDistributionReport_ a1 )
                 ]

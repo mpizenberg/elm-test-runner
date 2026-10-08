@@ -17,7 +17,6 @@ import ElmTestRunner.Vendor.ConsoleText as Text exposing (Text, UseColor, dark, 
 import ElmTestRunner.Vendor.FormatColor as FormatColor
 import ElmTestRunner.Vendor.FormatMonochrome as FormatMonochrome
 import Test.Distribution exposing (DistributionReport)
-import Test.Runner exposing (formatLabels)
 
 
 {-| Provide a console implementation of a reporter, mostly for human consumption.
@@ -116,10 +115,27 @@ successLabelsToText =
     formatLabels (dark << plain << withChar '↓') (green << withChar '✓') >> Text.concat
 
 
+formatLabels :
+    (String -> Text)
+    -> (String -> Text)
+    -> List String
+    -> List Text
+formatLabels formatDescription formatTest labels =
+    case labels of
+        [] ->
+            []
+
+        test :: descriptions ->
+            List.foldl
+                (\x acc -> formatDescription x :: acc)
+                [ formatTest test ]
+                descriptions
+
+
 distributionReportToString : DistributionReport -> Maybe String
 distributionReportToString distributionReport =
     case distributionReport of
-        Test.Distribution.NoDistribution ->
+        Test.Distribution.NoDistribution () ->
             Nothing
 
         Test.Distribution.DistributionToReport r ->
@@ -173,16 +189,16 @@ indent str =
         |> String.join "\n"
 
 
-logsToText : List String -> Text
+logsToText : String -> Text
 logsToText logs =
-    if List.isEmpty logs then
+    if String.isEmpty logs then
         Text.plain ""
 
     else
         Text.plain <|
             String.join "\n"
                 [ indent "with debug logs:\n"
-                , String.concat logs
+                , logs
                 , ""
                 ]
 

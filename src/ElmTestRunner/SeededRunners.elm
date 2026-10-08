@@ -1,26 +1,27 @@
-module ElmTestRunner.SeededRunners exposing (SeededRunners, Kind(..), empty, fromTest, run, kindFromString, kindToString)
+module ElmTestRunner.SeededRunners exposing (SeededRunners, Kind(..), empty, fromTest, getKind, getTestsCount, run, kindFromString, kindToString)
 
 {-| Helper module to prepare and run test runners.
 
-@docs SeededRunners, Kind, empty, fromTest, run, kindFromString, kindToString
+@docs SeededRunners, Kind, empty, fromTest, getKind, getTestsCount, run, kindFromString, kindToString
 
 -}
 
 import Array exposing (Array)
-import ElmTestRunner.Result as TestResult exposing (TestResult)
+import ElmTestRunner.Result exposing (TestResult(..))
 import Random
+import Task exposing (Task)
 import Test exposing (Test)
-import Test.Runner exposing (Runner)
+import Test.Distribution exposing (DistributionReport(..))
+import Test.Runner.Failure exposing (Reason(..))
+import Test.RunnerV2 exposing (FuzzTest, Tests, UnitTest)
 
 
-{-| Runners prepared with their random seed.
-If runners are invalid for some reason (duplicate name, ...),
-this is will be an `Err String`.
-Otherwise, the type tells us if `Test.only` or `Test.skip` was used,
-and provides the seeded runners in an array for efficient indexed access.
+{-| Tests with a random seed and the number of fuzz runs.
+The type tells us if `Test.only` or `Test.skip` was used,
+and provides the tests in arrays for efficient indexed access.
 -}
-type alias SeededRunners =
-    Result String { kind : Kind, runners : Array Runner }
+type SeededRunners
+    = SeededRunners Random.Seed Int Kind (Array UnitTest) (Array FuzzTest)
 
 
 {-| Informs us if `Test.only` or `Test.skip` was used.
@@ -68,42 +69,147 @@ kindToString kind =
 -}
 empty : SeededRunners
 empty =
-    Ok { kind = Plain, runners = Array.empty }
+    SeededRunners (Random.initialSeed 0) 0 Plain Array.empty Array.empty
 
 
-{-| Convert a "master" test into seeded runners.
+{-| Convert a "master" test into a `SeededRunners`.
 That "master" test usually is the concatenation of all exposed tests.
 -}
 fromTest : Test -> { initialSeed : Int, fuzzRuns : Int, filter : Maybe String } -> SeededRunners
 fromTest masterTest { initialSeed, fuzzRuns, filter } =
-    case Test.Runner.fromTest fuzzRuns (Random.initialSeed initialSeed) masterTest of
-        Test.Runner.Plain runnerList ->
-            Ok { kind = Plain, runners = Array.fromList (filterRunners filter runnerList) }
+    let
+        seed =
+            Random.initialSeed initialSeed
 
-        Test.Runner.Only runnerList ->
-            Ok { kind = Only, runners = Array.fromList runnerList }
+        tests =
+            Test.RunnerV2.toTests masterTest
 
-        Test.Runner.Skipping runnerList ->
-            Ok { kind = Skipping, runners = Array.fromList (filterRunners filter runnerList) }
+        unitTests =
+            Test.RunnerV2.getUnitTests tests
 
-        Test.Runner.Invalid error ->
-            Err error
+        fuzzTests =
+            Test.RunnerV2.getFuzzTests tests
+    in
+    case Test.RunnerV2.getExcludedDueToOnly tests of
+        Just _ ->
+            SeededRunners seed fuzzRuns Only unitTests fuzzTests
+
+        Nothing ->
+            SeededRunners
+                seed
+                fuzzRuns
+                (if Test.RunnerV2.getExcludedDueToSkip tests > 0 then
+                    Skipping
+
+                 else
+                    Plain
+                )
+                (filterTests filter Test.RunnerV2.getUnitTestLabels unitTests)
+                (filterTests filter Test.RunnerV2.getFuzzTestLabels fuzzTests)
 
 
-filterRunners : Maybe String -> List Runner -> List Runner
-filterRunners filter runners =
+{-| Get the `Kind` of tests.
+-}
+getKind : SeededRunners -> Kind
+getKind (SeededRunners _ _ kind _ _) =
+    kind
+
+
+{-| Get the number of tests.
+-}
+getTestsCount : SeededRunners -> Int
+getTestsCount (SeededRunners _ _ _ unitTests fuzzTests) =
+    Array.length unitTests + Array.length fuzzTests
+
+
+filterTests : Maybe String -> (test -> List String) -> Array test -> Array test
+filterTests filter getLabels tests =
     case filter of
         Nothing ->
-            runners
+            tests
 
         Just pattern ->
-            List.filter (\r -> List.any (String.contains pattern) r.labels) runners
+            Array.filter (\r -> List.any (String.contains pattern) (getLabels r)) tests
 
 
 {-| Run a given test if the id is in range.
 -}
-run : Int -> Array Runner -> Maybe TestResult
-run id runners =
-    Array.get id runners
-        |> Maybe.map (\runner -> { labels = runner.labels, expectations = runner.run () })
-        |> Maybe.map (\result -> TestResult.fromExpectations result.labels result.expectations)
+run : Int -> SeededRunners -> Maybe (Task Never TestResult)
+run id (SeededRunners seed fuzzRuns _ unitTests fuzzTests) =
+    case Array.get id unitTests of
+        Just unitTest ->
+            Test.RunnerV2.runUnitTest unitTest
+                |> Task.map
+                    (\( unitTestExpectation, duration, debugLogs ) ->
+                        case unitTestExpectation of
+                            Test.RunnerV2.UnitTestPass ->
+                                Passed
+                                    { labels = Test.RunnerV2.getUnitTestLabels unitTest
+                                    , duration = duration
+                                    , logs = debugLogs
+                                    , distributionReports = [ NoDistribution () ]
+                                    }
+
+                            Test.RunnerV2.UnitTestFail unitTestFailData ->
+                                let
+                                    ( todos, failures ) =
+                                        case Test.RunnerV2.getUnitTestFailReason unitTestFailData of
+                                            TODO ->
+                                                ( [ Test.RunnerV2.getUnitTestFailDescription unitTestFailData ]
+                                                , []
+                                                )
+
+                                            reason ->
+                                                ( []
+                                                , [ { given = Nothing
+                                                    , description = Test.RunnerV2.getUnitTestFailDescription unitTestFailData
+                                                    , reason = reason
+                                                    }
+                                                  ]
+                                                )
+                                in
+                                Failed
+                                    { labels = Test.RunnerV2.getUnitTestLabels unitTest
+                                    , duration = duration
+                                    , logs = debugLogs
+                                    , todos = todos
+                                    , failures = failures
+                                    , distributionReports = [ NoDistribution () ]
+                                    }
+                    )
+                |> Just
+
+        Nothing ->
+            case Array.get (id - Array.length unitTests) fuzzTests of
+                Just fuzzTest ->
+                    Test.RunnerV2.runFuzzTest fuzzTest seed fuzzRuns []
+                        |> Task.map
+                            (\( fuzzTestExpectation, duration, debugLogs ) ->
+                                case fuzzTestExpectation of
+                                    Test.RunnerV2.FuzzTestPass fuzzTestPassData ->
+                                        Passed
+                                            { labels = Test.RunnerV2.getFuzzTestLabels fuzzTest
+                                            , duration = duration
+                                            , logs = debugLogs
+                                            , distributionReports = [ Test.RunnerV2.getFuzzTestPassDistributionReport fuzzTestPassData ]
+                                            }
+
+                                    Test.RunnerV2.FuzzTestFail fuzzTestFailData ->
+                                        Failed
+                                            { labels = Test.RunnerV2.getFuzzTestLabels fuzzTest
+                                            , duration = duration
+                                            , logs = debugLogs
+                                            , todos = []
+                                            , failures =
+                                                [ { given = Test.RunnerV2.getFuzzTestFailGiven fuzzTestFailData
+                                                  , description = Test.RunnerV2.getFuzzTestFailDescription fuzzTestFailData
+                                                  , reason = Test.RunnerV2.getFuzzTestFailReason fuzzTestFailData
+                                                  }
+                                                ]
+                                            , distributionReports = [ Test.RunnerV2.getFuzzTestFailDistributionReport fuzzTestFailData ]
+                                            }
+                            )
+                        |> Just
+
+                Nothing ->
+                    Nothing

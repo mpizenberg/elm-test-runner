@@ -138,7 +138,7 @@ encodeTestResult result =
                 -- Data that was written to standard out while the test was executed.
                 -- Normally this is not an attribute inside "testcase" but a tag inside "testsuite" but here we bend the rules
                 -- to get the Debug.log outputs for this particular test.
-                , ( "system-out", Encode.string (String.join "\n" logs) )
+                , ( "system-out", Encode.string logs )
                 ]
     in
     Encode.object
@@ -158,7 +158,7 @@ classAndName labels =
 distributionReportToString : DistributionReport -> Maybe String
 distributionReportToString distributionReport =
     case distributionReport of
-        Test.Distribution.NoDistribution ->
+        Test.Distribution.NoDistribution () ->
             Nothing
 
         Test.Distribution.DistributionToReport r ->
@@ -271,3 +271,7 @@ reasonToString description reason =
                 ++ String.join "\n" extra
                 ++ "\n\nthese were missing:\n\n"
                 ++ String.join "\n" missing
+
+        Multiple _ ->
+            -- elm-test-runner does not support showing the `reason` for `Expect.oneOf`.
+            description

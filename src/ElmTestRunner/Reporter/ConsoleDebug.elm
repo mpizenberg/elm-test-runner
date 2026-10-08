@@ -79,7 +79,7 @@ indent str =
         |> String.join "\n"
 
 
-displayFailureContent : List String -> List Failure -> List DistributionReport -> List String -> String
+displayFailureContent : List String -> List Failure -> List DistributionReport -> String -> String
 displayFailureContent todos failures distributionReports logs =
     """with todos: {{ todos }}
 with failures: {{ failures }}
@@ -91,7 +91,7 @@ with debug logs:
         |> String.replace "{{ todos }}" (Debug.toString todos)
         |> String.replace "{{ failures }}" (Debug.toString failures)
         |> String.replace "{{ distributionReports }}" (Debug.toString distributionReports)
-        |> String.replace "{{ logs }}" (String.concat logs)
+        |> String.replace "{{ logs }}" logs
 
 
 onEnd : Result String Kind -> Array TestResult -> Maybe String

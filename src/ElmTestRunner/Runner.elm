@@ -17,12 +17,13 @@ module ElmTestRunner.Runner exposing
 
 -}
 
-import Array
 import ElmTestRunner.Result as TestResult exposing (TestResult)
 import ElmTestRunner.SeededRunners as SeededRunners exposing (SeededRunners, kindToString)
 import Json.Encode exposing (Value)
 import Platform
+import Task
 import Test exposing (Test)
+import Test.RunnerV2
 
 
 
@@ -33,7 +34,7 @@ import Test exposing (Test)
 -}
 type alias Ports msg =
     { askTestsCount : (Value -> msg) -> Sub msg
-    , sendTestsCount : { kind : String, testsCount : Int } -> Cmd msg
+    , sendTestsCount : { kind : String, testsCount : Int, logs : String } -> Cmd msg
     , receiveRunTest : (Int -> msg) -> Sub msg
     , sendResult : { id : Int, result : Value } -> Cmd msg
     }
@@ -64,7 +65,9 @@ type alias Model =
 -}
 type Msg
     = AskTestsCount
+    | GotDebugLogsBeforeFirstTestRun String
     | ReceiveRunTest Int
+    | RanTest Int TestResult
 
 
 
@@ -87,7 +90,7 @@ of needed imports from user code and the list of tests to run.
     import Json.Encode exposing (Value)
 
     port askTestsCount : (Value -> msg) -> Sub msg
-    port sendTestsCount : { kind : String, testsCount : Int } -> Cmd msg
+    port sendTestsCount : { kind : String, testsCount : Int, logs : String } -> Cmd msg
     port receiveRunTest : (Int  -> msg) -> Sub msg
     port sendResult : { id : Int, result : Value } -> Cmd msg
 
@@ -139,24 +142,33 @@ init maybeConcatenatedTest ports flags =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case ( msg, model.testRunners ) of
-        -- AskTestsCount
-        ( AskTestsCount, Ok { kind, runners } ) ->
-            ( model, model.ports.sendTestsCount { kind = kindToString kind, testsCount = Array.length runners } )
+    case msg of
+        AskTestsCount ->
+            ( model
+            , Test.RunnerV2.getDebugLogsBeforeFirstTestRun
+                |> Task.perform GotDebugLogsBeforeFirstTestRun
+            )
 
-        ( AskTestsCount, Err err ) ->
-            ( model, model.ports.sendTestsCount { kind = "Invalid" ++ err, testsCount = 0 } )
+        GotDebugLogsBeforeFirstTestRun debugLogs ->
+            ( model
+            , model.ports.sendTestsCount
+                { kind = kindToString (SeededRunners.getKind model.testRunners)
+                , testsCount = SeededRunners.getTestsCount model.testRunners
+                , logs = debugLogs
+                }
+            )
 
-        -- ReceiveRunTest
-        ( ReceiveRunTest id, Ok { runners } ) ->
-            ( model, sendTestResult model.ports id (SeededRunners.run id runners) )
+        ReceiveRunTest id ->
+            ( model
+            , case SeededRunners.run id model.testRunners of
+                Just task ->
+                    Task.perform (RanTest id) task
 
-        ( ReceiveRunTest _, Err _ ) ->
-            ( model, Debug.todo "There is no test to run, how did we get here?" )
+                Nothing ->
+                    Cmd.none
+            )
 
-
-sendTestResult : Ports msg -> Int -> Maybe TestResult -> Cmd msg
-sendTestResult ports id maybeResult =
-    Maybe.map TestResult.encode maybeResult
-        |> Maybe.map (\res -> ports.sendResult { id = id, result = res })
-        |> Maybe.withDefault Cmd.none
+        RanTest id testResult ->
+            ( model
+            , model.ports.sendResult { id = id, result = TestResult.encode testResult }
+            )

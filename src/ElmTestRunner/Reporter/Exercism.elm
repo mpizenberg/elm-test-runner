@@ -19,7 +19,6 @@ import ElmTestRunner.Vendor.ConsoleText as Text exposing (Text, UseColor)
 import ElmTestRunner.Vendor.FormatColor as FormatColor
 import ElmTestRunner.Vendor.FormatMonochrome as FormatMonochrome
 import Json.Encode as Encode exposing (Value)
-import Test.Distribution exposing (DistributionReport)
 
 
 {-| Implementation of a reporter for exercism, mostly for automated tools.
@@ -128,11 +127,11 @@ toExercismResult testResult =
             , message = Just (failureMessage failures todos)
             , output =
                 case logs of
-                    [] ->
+                    "" ->
                         Nothing
 
                     _ ->
-                        Just (String.join "\n" logs)
+                        Just logs
             }
 
 
